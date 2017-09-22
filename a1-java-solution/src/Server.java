@@ -26,19 +26,22 @@ public class Server implements ClientListener{
 
     @Override
     public void createChatRoom(String name) {
-        this.chatRooms.put( name,new ChatRoom(name));
+        this.chatRooms.put( name, new ChatRoom(name));
     }
 
     @Override
     public void leaveChatRoom(ServerClientThread socket, ChatRoom currentRoom) {
         if(!currentRoom.connectedSockets.remove(socket)){
-            throw new java.lang.RuntimeException("Leave chat room failed");
+            throw new java.lang.RuntimeException("Leave chat room error!");
         }
     }
 
     @Override
     public void joinChatRoom(ServerClientThread clientThread ,String roomName) {
-        chatRooms.get(roomName).connectedSockets.add(clientThread);
+        if(!chatRooms.get(roomName).connectedSockets.add(clientThread)){
+            throw new java.lang.RuntimeException("Join chat room error!");
+        };
+        clientThread.chatRoom = chatRooms.get(roomName);
     }
 
     @Override

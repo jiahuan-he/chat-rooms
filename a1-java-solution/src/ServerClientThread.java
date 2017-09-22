@@ -78,12 +78,23 @@ class ServerClientThread extends Thread{
 
                 switch (command){
                     case "/create":
-                        this.server.createChatRoom(param);
+                        if(m.length <= 1){
+                            sendTo(this.socket, getMessage(TYPE.ANY, null, null, "Wrong parameters"));
+                            break;
+                        }
+                        for(int i=1; i<m.length; i++){
+                            this.server.createChatRoom(m[i]);
+                            sendTo(this.socket, getMessage(TYPE.ANY, null, null, "Create room: " + m[i] + " success!"));
+                        }
+                        break;
 
                     case "/leave":
                         this.server.leaveChatRoom(this, this.chatRoom);
                         sendTo(this.socket, getMessage(TYPE.LEAVE_SUCCESS, null, null, null));
-                        sendTo(this.socket, getMessage(TYPE.ANY, null, null, "To join a new room, enter /join <ROOM_NAME>"));
+                        sendTo(this.socket, getMessage(TYPE.ANY,
+                                null,
+                                null,
+                                " >> To join a new room, enter /join <ROOM_NAME>"));
                         break;
 
                     case "/join":
