@@ -3,6 +3,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Set;
 
 class ServerClientThread extends Thread{
 
@@ -35,7 +36,7 @@ class ServerClientThread extends Thread{
                 message ="Welcome new user! \nCurrent room: "+room.name + "\ncurrent users: " + room.connectedSockets.size();
                 break;
             case TEXT:
-                message = socket.getInetAddress() + " says " + text;
+                message =room.name+"> "+ text;
                 break;
             case JOIN_SUCCESS:
                 message = "Join new room success!";
@@ -64,7 +65,7 @@ class ServerClientThread extends Thread{
             String newMessage = null;
             while ( (newMessage= socketReader.readLine())!= null){
                 if(newMessage.trim().isEmpty()){
-                    message = socket.getInetAddress() + " says " + newMessage;
+                    message =getMessage(TYPE.TEXT, chatRoom, socket, null);
                     broadCast(message);
                     continue;
                 }
@@ -91,10 +92,7 @@ class ServerClientThread extends Thread{
                     case "/leave":
                         this.server.leaveChatRoom(this, this.chatRoom);
                         sendTo(this.socket, getMessage(TYPE.LEAVE_SUCCESS, null, null, null));
-                        sendTo(this.socket, getMessage(TYPE.ANY,
-                                null,
-                                null,
-                                " >> To join a new room, enter /join <ROOM_NAME>"));
+                        sendTo(this.socket, " >> To join a new room, enter /join <ROOM_NAME>");
                         break;
 
                     case "/join":
@@ -103,8 +101,15 @@ class ServerClientThread extends Thread{
 //                        broadCast(getMessage(TYPE.ANY, null, null, "welcome new user!"));
                         break;
 
+                    case "/list":
+                        Set<String> rooms = this.server.listChatRooms();
+                        for (String room: rooms){
+                            sendTo(this.socket, room);
+                        }
+                        break;
+
                     default:
-                        message = getMessage(TYPE.TEXT, null, socket, newMessage);
+                        message = getMessage(TYPE.TEXT, chatRoom, socket, newMessage);
                         broadCast(message);
                         break;
                 }

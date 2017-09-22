@@ -3,6 +3,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Set;
 
 
 public class Server implements ClientListener{
@@ -40,12 +41,13 @@ public class Server implements ClientListener{
     public void joinChatRoom(ServerClientThread clientThread ,String roomName) {
         if(!chatRooms.get(roomName).connectedSockets.add(clientThread)){
             throw new java.lang.RuntimeException("Join chat room error!");
-        };
+        }
         clientThread.chatRoom = chatRooms.get(roomName);
     }
 
     @Override
-    public void listChatRooms() {
+    public Set<String> listChatRooms() {
+        return chatRooms.keySet();
 
     }
 
