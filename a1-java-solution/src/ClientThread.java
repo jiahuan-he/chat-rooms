@@ -14,11 +14,11 @@ public class ClientThread extends Thread{
     public void run() {
         try {
             BufferedReader consoleReader = new BufferedReader(new InputStreamReader(System.in));
-            PrintWriter printWriter = new PrintWriter(socket.getOutputStream(), true);
+            PrintWriter socketPrinter = new PrintWriter(socket.getOutputStream(), true);
             String message;
 
             while ((message = consoleReader.readLine()) != null) {
-                printWriter.println(message);
+                socketPrinter.println(message);
             }
         } catch (Exception e) {
             e.printStackTrace();
