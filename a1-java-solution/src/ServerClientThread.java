@@ -10,7 +10,7 @@ class ServerClientThread extends Thread{
     ChatRoom chatRoom;
     Socket socket;
     private BufferedReader socketReader;
-    private PrintWriter socketPrinter;
+
     private String message;
     private ClientListener server;
 
@@ -23,6 +23,9 @@ class ServerClientThread extends Thread{
     enum TYPE{
         JOIN,
         TEXT,
+        JOIN_SUCCESS,
+        LEAVE_SUCCESS,
+        ANY
     }
 
     private String getMessage(TYPE type, ChatRoom room, Socket socket, String text){
@@ -34,6 +37,17 @@ class ServerClientThread extends Thread{
             case TEXT:
                 message = socket.getInetAddress() + " says " + text;
                 break;
+            case JOIN_SUCCESS:
+                message = "Join new room success!";
+                break;
+            case LEAVE_SUCCESS:
+                message = "Leave room success!";
+                break;
+
+            case ANY:
+                message = text;
+                break;
+
             default:
                 throw new RuntimeException();
         }
@@ -45,13 +59,13 @@ class ServerClientThread extends Thread{
         try {
             socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             message = getMessage(TYPE.JOIN, chatRoom, socket, null);
-            broadCast();
+            broadCast(message);
 
             String newMessage = null;
             while ( (newMessage= socketReader.readLine())!= null){
                 if(newMessage.trim().isEmpty()){
                     message = socket.getInetAddress() + " says " + newMessage;
-                    broadCast();
+                    broadCast(message);
                     continue;
                 }
 
@@ -63,17 +77,24 @@ class ServerClientThread extends Thread{
                 }
 
                 switch (command){
+                    case "/create":
+                        this.server.createChatRoom(param);
+
                     case "/leave":
                         this.server.leaveChatRoom(this, this.chatRoom);
+                        sendTo(this.socket, getMessage(TYPE.LEAVE_SUCCESS, null, null, null));
+                        sendTo(this.socket, getMessage(TYPE.ANY, null, null, "To join a new room, enter /join <ROOM_NAME>"));
                         break;
 
                     case "/join":
                         this.server.joinChatRoom(this, param);
+                        sendTo(this.socket, getMessage(TYPE.JOIN_SUCCESS, null, null, null));
+//                        broadCast(getMessage(TYPE.ANY, null, null, "welcome new user!"));
                         break;
 
                     default:
                         message = getMessage(TYPE.TEXT, null, socket, newMessage);
-                        broadCast();
+                        broadCast(message);
                         break;
                 }
 
@@ -88,13 +109,20 @@ class ServerClientThread extends Thread{
         }
     }
 
+    private void sendTo(Socket socket, String message) throws IOException{
+        PrintWriter socketPrinter = new PrintWriter(socket.getOutputStream(), true);
+        socketPrinter.println(message);
+        socketPrinter.flush();
+    }
 
 
-    private void broadCast() throws IOException {
+    private void broadCast(String message) throws IOException {
+        PrintWriter socketPrinter;
         for(ServerClientThread client: chatRoom.connectedSockets){
-            socketPrinter = new PrintWriter(client.socket.getOutputStream(), true);
-            socketPrinter.println(message);
-            socketPrinter.flush();
+//            socketPrinter = new PrintWriter(client.socket.getOutputStream(), true);
+//            socketPrinter.println(message);
+//            socketPrinter.flush();
+            sendTo(client.socket, message);
         }
     }
 
