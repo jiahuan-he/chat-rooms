@@ -1,18 +1,19 @@
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
 import java.util.LinkedList;
 
 
 public class Server implements ClientListener{
     private int port = 8088;
-    private LinkedList<ChatRoom> chatRooms;
+    private HashMap<String, ChatRoom> chatRooms;
     private ServerSocket serverSocket;
 
     private void startServer() throws IOException {
         ChatRoom defautRoom = new ChatRoom("default-room");
-        chatRooms = new LinkedList<>();
-        chatRooms.add(defautRoom);
+        chatRooms = new HashMap<>();
+        chatRooms.put(defautRoom.name, defautRoom);
         serverSocket = new ServerSocket(port);
 
         Socket newSocket;
@@ -25,7 +26,7 @@ public class Server implements ClientListener{
 
     @Override
     public void createChatRoom(String name) {
-        this.chatRooms.add( new ChatRoom(name));
+        this.chatRooms.put( name,new ChatRoom(name));
     }
 
     @Override
@@ -36,8 +37,8 @@ public class Server implements ClientListener{
     }
 
     @Override
-    public void joinChatRoom(String name) {
-
+    public void joinChatRoom(ServerClientThread clientThread ,String roomName) {
+        chatRooms.get(roomName).connectedSockets.add(clientThread);
     }
 
     @Override
