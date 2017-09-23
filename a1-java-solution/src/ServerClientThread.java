@@ -9,11 +9,10 @@ import java.util.Set;
 
 class ServerClientThread extends Thread{
 
-    String clientName;
-//    private ChatRoom chatRoom;
+//    String clientName;
     HashMap<String ,ChatRoom> chatRooms;
     private Socket socket;
-    private BufferedReader socketReader;
+    private ChatRoom currentRoom;
 
     private String message;
     private ClientListener server;
@@ -33,13 +32,13 @@ class ServerClientThread extends Thread{
         ANY
     }
 
-    enum MESSAGE{
-        WELCOME,
-        TEXT,
-    }
+//    enum MESSAGE{
+//        WELCOME,
+//        TEXT,
+//    }
 
     private String getMessage(TYPE type, ChatRoom room, Socket socket, String text){
-        String message = null;
+        String message;
         switch (type){
             case JOIN:
                 message ="Welcome new user joining room: "+room.name + "\ncurrent users: " + room.connectedSockets.size();
@@ -67,8 +66,9 @@ class ServerClientThread extends Thread{
     @Override
     public void run() {
         try {
-            socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            BufferedReader socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             ChatRoom defaultRoom = (ChatRoom) chatRooms.values().toArray()[0];
+            this.currentRoom = defaultRoom;
             message = getMessage(TYPE.JOIN,defaultRoom, socket, null);
             broadCast(message, defaultRoom);
 
@@ -113,6 +113,9 @@ class ServerClientThread extends Thread{
 
                         for(int i=1; i<m.length; i++){
                             if(this.chatRooms.containsKey(m[i])){
+                                if(m[i].equals(this.currentRoom.name)){
+                                    this.currentRoom = null;
+                                }
                                 if(!chatRooms.get(m[i]).connectedSockets.remove(this)){
                                     throw new java.lang.RuntimeException("Leave chat room error!");
                                 }
@@ -146,19 +149,41 @@ class ServerClientThread extends Thread{
 
                         for (String room: rooms){
                             if (joinedRooms.contains(room)){
-                                sendTo(this.socket, ">> (joined) " + room);
+                                if (this.currentRoom != null && room.equals(this.currentRoom.name)){
+                                    sendTo(this.socket, ">> (joined) (current) " + room);
+                                }
+                                else{
+                                    sendTo(this.socket, ">> (joined)           " + room);
+                                }
+
                             }
                             else{
-                                sendTo(this.socket, ">>          " + room);
+                                sendTo(this.socket, ">>                    " + room);
                             }
+                        }
+                        break;
 
+                    case "/switch":
+                        if(m.length != 2){
+                            sendTo(this.socket,">> Wrong parameters");
+                            break;
+                        }
+                        if(this.chatRooms.containsKey(m[1])){
+                            this.currentRoom = this.chatRooms.get(m[1]);
+                            sendTo(this.socket, ">> Switched to room: "+m[1]+" success!");
+                        }
+                        else{
+                            sendTo(this.socket, ">> Switch to room: "+m[1]+" failed. Either there is no room named "+m[1] + " or you have not joined "+ m[1]);
                         }
                         break;
 
                     default:
-                        for(ChatRoom room: chatRooms.values()){
-                            message = getMessage(TYPE.TEXT, room, socket, newMessage);
-                            broadCast(message, room, this);
+                        if(this.currentRoom == null){
+                            this.sendTo(socket, "Your current room is empty. You might have to join and switch to a room");
+                        }
+                        else{
+                            message = getMessage(TYPE.TEXT, this.currentRoom, socket, newMessage);
+                            broadCast(message, this.currentRoom, this);
                         }
                         break;
                 }
