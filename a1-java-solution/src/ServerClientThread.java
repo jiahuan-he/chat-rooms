@@ -3,13 +3,16 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Set;
 
 class ServerClientThread extends Thread{
 
     String clientName;
-    ChatRoom chatRoom;
-    Socket socket;
+//    private ChatRoom chatRoom;
+    HashMap<String ,ChatRoom> chatRooms;
+    private Socket socket;
     private BufferedReader socketReader;
 
     private String message;
@@ -17,7 +20,8 @@ class ServerClientThread extends Thread{
 
     ServerClientThread(Socket socket, ChatRoom chatRoom, ClientListener listener){
         this.socket = socket;
-        this.chatRoom = chatRoom;
+        this.chatRooms = new HashMap<>();
+        this.chatRooms.put(chatRoom.name ,chatRoom);
         this.server = listener;
     }
 
@@ -29,11 +33,16 @@ class ServerClientThread extends Thread{
         ANY
     }
 
+    enum MESSAGE{
+        WELCOME,
+        TEXT,
+    }
+
     private String getMessage(TYPE type, ChatRoom room, Socket socket, String text){
         String message = null;
         switch (type){
             case JOIN:
-                message ="Welcome new user! \nCurrent room: "+room.name + "\ncurrent users: " + room.connectedSockets.size();
+                message ="Welcome new user joining room: "+room.name + "\ncurrent users: " + room.connectedSockets.size();
                 break;
             case TEXT:
                 message =room.name+"> "+ text;
@@ -59,14 +68,17 @@ class ServerClientThread extends Thread{
     public void run() {
         try {
             socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            message = getMessage(TYPE.JOIN, chatRoom, socket, null);
-            broadCast(message);
+            ChatRoom defaultRoom = (ChatRoom) chatRooms.values().toArray()[0];
+            message = getMessage(TYPE.JOIN,defaultRoom, socket, null);
+            broadCast(message, defaultRoom);
 
-            String newMessage = null;
+            String newMessage;
             while ( (newMessage= socketReader.readLine())!= null){
                 if(newMessage.trim().isEmpty()){
-                    message =getMessage(TYPE.TEXT, chatRoom, socket, null);
-                    broadCast(message);
+                    for(ChatRoom room: chatRooms.values()){
+                        message =getMessage(TYPE.TEXT, room, socket, null);
+                        broadCast(message, room, this);
+                    }
                     continue;
                 }
 
@@ -80,46 +92,78 @@ class ServerClientThread extends Thread{
                 switch (command){
                     case "/create":
                         if(m.length <= 1){
-                            sendTo(this.socket, getMessage(TYPE.ANY, null, null, "Wrong parameters"));
+                            sendTo(this.socket,">> Wrong parameters");
                             break;
                         }
                         for(int i=1; i<m.length; i++){
-                            this.server.createChatRoom(m[i]);
-                            sendTo(this.socket, getMessage(TYPE.ANY, null, null, "Create room: " + m[i] + " success!"));
+                            if(this.server.createChatRoom(m[i])){
+                                sendTo(this.socket, ">> Create room: "+m[i]+" success!");
+                            }
+                            else{
+                                sendTo(this.socket, ">> Create room: "+m[i]+" failed. The room with this name already exists");
+                            }
                         }
                         break;
 
                     case "/leave":
-                        this.server.leaveChatRoom(this, this.chatRoom);
-                        sendTo(this.socket, getMessage(TYPE.LEAVE_SUCCESS, null, null, null));
-                        sendTo(this.socket, " >> To join a new room, enter /join <ROOM_NAME>");
+                        if(m.length <= 1){
+                            sendTo(this.socket, ">> Wrong parameters");
+                            break;
+                        }
+
+                        for(int i=1; i<m.length; i++){
+                            if(this.chatRooms.containsKey(m[i])){
+                                if(!chatRooms.get(m[i]).connectedSockets.remove(this)){
+                                    throw new java.lang.RuntimeException("Leave chat room error!");
+                                }
+                                this.chatRooms.remove(m[i]);
+                                sendTo(this.socket, ">> Leave room: "+m[i]+" success!");
+                            }
+                            else{
+                                sendTo(this.socket, ">> Leave room: "+m[i]+" failed. There is no room named "+m[i]);
+                            }
+                        }
+                        sendTo(this.socket, " >> To join a new room, enter /join <ROOM_NAMES...>");
                         break;
 
                     case "/join":
-                        this.server.joinChatRoom(this, param);
-                        sendTo(this.socket, getMessage(TYPE.JOIN_SUCCESS, null, null, null));
-//                        broadCast(getMessage(TYPE.ANY, null, null, "welcome new user!"));
+
+                        for(int i=1; i<m.length; i++){
+                            if(this.server.joinChatRoom(this, m[i])){
+                                sendTo(this.socket, ">> Join room: "+m[i]+" success!");
+                            }
+                            else{
+                                sendTo(this.socket, ">> Join room: "+m[i]+" failed. There is no room named "+m[i]);
+                            }
+                        }
+
                         break;
 
                     case "/list":
                         Set<String> rooms = this.server.listChatRooms();
+                        Set<String> joinedRooms = this.chatRooms.keySet();
+                        joinedRooms.retainAll(rooms);
+
                         for (String room: rooms){
-                            sendTo(this.socket, room);
+                            if (joinedRooms.contains(room)){
+                                sendTo(this.socket, ">> (joined) " + room);
+                            }
+                            else{
+                                sendTo(this.socket, ">>          " + room);
+                            }
+
                         }
                         break;
 
                     default:
-                        message = getMessage(TYPE.TEXT, chatRoom, socket, newMessage);
-                        broadCast(message);
+                        for(ChatRoom room: chatRooms.values()){
+                            message = getMessage(TYPE.TEXT, room, socket, newMessage);
+                            broadCast(message, room, this);
+                        }
                         break;
                 }
 
-
             }
-//            while (true){
-//                message = socket.getInetAddress() + " says " + socketReader.readLine();
-//                broadCast();
-//            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -132,13 +176,20 @@ class ServerClientThread extends Thread{
     }
 
 
-    private void broadCast(String message) throws IOException {
-        PrintWriter socketPrinter;
-        for(ServerClientThread client: chatRoom.connectedSockets){
-//            socketPrinter = new PrintWriter(client.socket.getOutputStream(), true);
-//            socketPrinter.println(message);
-//            socketPrinter.flush();
-            sendTo(client.socket, message);
+    private void broadCast(String message, ChatRoom room, ServerClientThread from) throws IOException {
+            for(ServerClientThread client: room.connectedSockets){
+                if (client == from){
+                    sendTo(client.socket, "(me) " + message);
+                }
+                else{
+                    sendTo(client.socket, message);
+                }
+            }
+        }
+
+    private void broadCast(String message, ChatRoom room) throws IOException {
+        for(ServerClientThread client: room.connectedSockets){
+                sendTo(client.socket, message);
         }
     }
 

@@ -8,7 +8,7 @@ import java.util.Set;
 
 public class Server implements ClientListener{
     private int port = 8088;
-    private HashMap<String, ChatRoom> chatRooms;
+    HashMap<String, ChatRoom> chatRooms;
     private ServerSocket serverSocket;
 
     private void startServer() throws IOException {
@@ -26,23 +26,30 @@ public class Server implements ClientListener{
     }
 
     @Override
-    public void createChatRoom(String name) {
+    public boolean createChatRoom(String name) {
+        if(chatRooms.containsKey(name)){
+            return false;
+        }
         this.chatRooms.put( name, new ChatRoom(name));
+        return true;
     }
 
-    @Override
-    public void leaveChatRoom(ServerClientThread socket, ChatRoom currentRoom) {
-        if(!currentRoom.connectedSockets.remove(socket)){
-            throw new java.lang.RuntimeException("Leave chat room error!");
-        }
-    }
+//    @Override
+//    public void leaveChatRoom(ServerClientThread socket, ChatRoom currentRoom) {
+//        if(!currentRoom.connectedSockets.remove(socket)){
+//            throw new java.lang.RuntimeException("Leave chat room error!");
+//        }
+//    }
 
     @Override
-    public void joinChatRoom(ServerClientThread clientThread ,String roomName) {
-        if(!chatRooms.get(roomName).connectedSockets.add(clientThread)){
-            throw new java.lang.RuntimeException("Join chat room error!");
+    public boolean joinChatRoom(ServerClientThread clientThread ,String roomName) {
+        if(chatRooms.containsKey(roomName)){
+            if(chatRooms.get(roomName).connectedSockets.add(clientThread)){
+                clientThread.chatRooms.put(roomName,chatRooms.get(roomName));
+                return true;
+            }
         }
-        clientThread.chatRoom = chatRooms.get(roomName);
+        return false;
     }
 
     @Override
