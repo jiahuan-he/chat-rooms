@@ -27,9 +27,6 @@ class ServerClientThread extends Thread{
     enum TYPE{
         JOIN,
         TEXT,
-        JOIN_SUCCESS,
-        LEAVE_SUCCESS,
-        ANY
     }
 
 //    enum MESSAGE{
@@ -41,20 +38,10 @@ class ServerClientThread extends Thread{
         String message;
         switch (type){
             case JOIN:
-                message ="Welcome new user joining room: "+room.name + "\ncurrent users: " + room.connectedSockets.size();
+                message =">> Welcome new user joining room: "+room.name + "\n>> Current users: " + room.connectedSockets.size();
                 break;
             case TEXT:
                 message =room.name+"> "+ text;
-                break;
-            case JOIN_SUCCESS:
-                message = "Join new room success!";
-                break;
-            case LEAVE_SUCCESS:
-                message = "Leave room success!";
-                break;
-
-            case ANY:
-                message = text;
                 break;
 
             default:
@@ -134,10 +121,12 @@ class ServerClientThread extends Thread{
                         for(int i=1; i<m.length; i++){
                             if(this.server.joinChatRoom(this, m[i])){
                                 sendTo(this.socket, ">> Join room: "+m[i]+" success!");
+//                                broadCast(getMessage(TYPE.JOIN, chatRooms.get(m[i]), socket, null), chatRooms.get(m[i]));
                             }
                             else{
                                 sendTo(this.socket, ">> Join room: "+m[i]+" failed. There is no room named "+m[i]);
                             }
+
                         }
 
                         break;
@@ -146,6 +135,10 @@ class ServerClientThread extends Thread{
                         Set<String> rooms = this.server.listChatRooms();
                         Set<String> joinedRooms = this.chatRooms.keySet();
                         joinedRooms.retainAll(rooms);
+
+                        if(this.currentRoom == null){
+                            sendTo(socket, "Warning: you don't have a current room. Join and switch to a room to speak");
+                        }
 
                         for (String room: rooms){
                             if (joinedRooms.contains(room)){
