@@ -3,6 +3,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.FormatFlagsConversionMismatchException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Set;
@@ -58,6 +59,9 @@ class ServerClientThread extends Thread{
             this.currentRoom = defaultRoom;
             message = getMessage(TYPE.JOIN,defaultRoom, socket, null);
             broadCast(message, defaultRoom);
+            for(String str: defaultRoom.history){
+                sendTo(this.socket, str);
+            }
 
             String newMessage;
             while ( (newMessage= socketReader.readLine())!= null){
@@ -122,6 +126,9 @@ class ServerClientThread extends Thread{
                             if(this.server.joinChatRoom(this, m[i])){
                                 sendTo(this.socket, ">> Join room: "+m[i]+" success!");
 //                                broadCast(getMessage(TYPE.JOIN, chatRooms.get(m[i]), socket, null), chatRooms.get(m[i]));
+                                for (String str: chatRooms.get(m[i]).history){
+                                    sendTo(this.socket, str);
+                                }
                             }
                             else{
                                 sendTo(this.socket, ">> Join room: "+m[i]+" failed. There is no room named "+m[i]);
@@ -176,6 +183,7 @@ class ServerClientThread extends Thread{
                         }
                         else{
                             message = getMessage(TYPE.TEXT, this.currentRoom, socket, newMessage);
+                            this.currentRoom.history.add(message);
                             broadCast(message, this.currentRoom, this);
                         }
                         break;
