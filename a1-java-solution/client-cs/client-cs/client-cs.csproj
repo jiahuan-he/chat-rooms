@@ -32,8 +32,9 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Program.cs" />
+    <Compile Include="ClientIn.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ClientOut.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

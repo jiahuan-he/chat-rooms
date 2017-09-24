@@ -16,9 +16,10 @@ public class Server implements ClientListener{
         chatRooms = new HashMap<>();
         chatRooms.put(defautRoom.name, defautRoom);
         serverSocket = new ServerSocket(port);
-
+        System.out.println("Socket listening on "+port);
         Socket newSocket;
         while ((newSocket = serverSocket.accept())!= null){
+            System.out.println("New connection");
             ServerClientThread newClient = new ServerClientThread(newSocket, defautRoom, this);
             defautRoom.connectedSockets.add(newClient);
             newClient.start();

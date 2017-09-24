@@ -4,12 +4,13 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
-public class ClientThread extends Thread{
-    Socket socket;
+public class ClientOut extends Thread{
+    private Socket socket;
 
-    ClientThread(Socket socket){
+    ClientOut(Socket socket){
         this.socket = socket;
     }
+
 
     public void run() {
         try {

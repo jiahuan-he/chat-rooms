@@ -3,9 +3,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.FormatFlagsConversionMismatchException;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Set;
 
 class ServerClientThread extends Thread{
@@ -42,6 +40,9 @@ class ServerClientThread extends Thread{
                 message =">> Welcome new user joining room: "+room.name + "\n>> Current users: " + room.connectedSockets.size();
                 break;
             case TEXT:
+                if(text == null){
+                    text = " ";
+                }
                 message =room.name+"> "+ text;
                 break;
 

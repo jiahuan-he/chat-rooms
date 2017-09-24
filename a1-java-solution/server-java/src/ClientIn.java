@@ -1,19 +1,17 @@
 import java.io.*;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Scanner;
 
 
-public class Client {
+public class ClientIn {
     private int port = 8088;
-    Socket socket;
+    private Socket socket;
     String name = "user1";
-    ClientThread clientThread;
+    private ClientOut clientThread;
 
-    Client(String name) throws IOException {
+    ClientIn(String name) throws IOException {
         this.name = name;
         socket = new Socket("localhost", port);
-        clientThread = new ClientThread(socket);
+        clientThread = new ClientOut(socket);
         clientThread.start();
 
         // This is a main blocking thread listening to the socket and print message on the console
@@ -26,7 +24,7 @@ public class Client {
 
     public static void main(String argus[]) throws IOException {
 
-        new Client("newC");
+        new ClientIn("newC");
 
 //        ArrayList<User> users = new ArrayList<>();
 //        Scanner scanner = new Scanner(System.in);  // Reading from System.in
