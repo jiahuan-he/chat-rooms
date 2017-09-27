@@ -6,10 +6,13 @@ import java.net.Socket;
 
 public class ClientOut extends Thread{
     private Socket socket;
+    private String name;
 
-    ClientOut(Socket socket){
+    ClientOut(Socket socket, String name){
         this.socket = socket;
+        this.name = name;
     }
+
 
 
     public void run() {
@@ -17,7 +20,7 @@ public class ClientOut extends Thread{
             BufferedReader consoleReader = new BufferedReader(new InputStreamReader(System.in));
             PrintWriter socketPrinter = new PrintWriter(socket.getOutputStream(), true);
             String message;
-
+            socketPrinter.println("/rename "+this.name);
             while ((message = consoleReader.readLine()) != null) {
                 socketPrinter.println(message);
             }

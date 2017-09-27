@@ -8,7 +8,7 @@ import java.util.Set;
 
 class ServerClientThread extends Thread{
 
-//    String clientName;
+    String name;
     HashMap<String ,ChatRoom> chatRooms;
     private Socket socket;
     private ChatRoom currentRoom;
@@ -43,7 +43,7 @@ class ServerClientThread extends Thread{
                 if(text == null){
                     text = " ";
                 }
-                message =room.name+"> "+ text;
+                message =room.name+"> " + this.name+ " says:" + text;
                 break;
 
             default:
@@ -73,7 +73,6 @@ class ServerClientThread extends Thread{
                     }
                     continue;
                 }
-
                 String[] m = newMessage.split(" ");
                 String command = m[0];
                 String param=null;
@@ -176,6 +175,22 @@ class ServerClientThread extends Thread{
                         else{
                             sendTo(this.socket, ">> Switch to room: "+m[1]+" failed. Either there is no room named "+m[1] + " or you have not joined "+ m[1]);
                         }
+                        break;
+
+                    case "/rename":
+                        if(m.length != 2){
+                            sendTo(this.socket, ">> Wrong parameters");
+                            break;
+                        }
+                        for(ChatRoom room: this.chatRooms.values()){
+                            for (ServerClientThread client: room.connectedSockets){
+                                if (client.name != null && client.name.equals(m[1])){
+                                    sendTo(this.socket, ">> This name already exists");
+                                    break;
+                                }
+                            }
+                        }
+                        this.name = m[1];
                         break;
 
                     default:

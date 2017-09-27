@@ -1,3 +1,5 @@
+import sun.rmi.server.InactiveGroupException;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -11,12 +13,21 @@ public class Server implements ClientListener{
     HashMap<String, ChatRoom> chatRooms;
     private ServerSocket serverSocket;
 
-    private void startServer() throws IOException {
+    private void startServer(String argus[]) throws IOException {
+
         ChatRoom defautRoom = new ChatRoom("default-room");
         chatRooms = new HashMap<>();
         chatRooms.put(defautRoom.name, defautRoom);
-        serverSocket = new ServerSocket(port);
-        System.out.println("Socket listening on "+port);
+
+        if(argus == null || argus.length==0){
+            serverSocket = new ServerSocket(port);
+        }
+        else{
+            serverSocket = new ServerSocket(Integer.parseInt(argus[0]));
+        }
+
+
+        System.out.println("Socket listening on "+serverSocket.getLocalPort());
         Socket newSocket;
         while ((newSocket = serverSocket.accept())!= null){
             System.out.println("New connection");
@@ -61,7 +72,8 @@ public class Server implements ClientListener{
 
     public static void main(String argus[]){
         try {
-            new Server().startServer();
+                new Server().startServer(argus);
+
         } catch (IOException e) {
             e.printStackTrace();
         }

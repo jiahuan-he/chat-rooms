@@ -1,17 +1,23 @@
 import java.io.*;
 import java.net.Socket;
+import java.util.Scanner;
 
 
 public class ClientIn {
-    private int port = 8088;
+//    private int port = 8088;
     private Socket socket;
     String name = "user1";
     private ClientOut clientThread;
 
-    ClientIn(String name) throws IOException {
-        this.name = name;
+    ClientIn() throws IOException {
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Enter the port you want to connect:");
+        int port = sc.nextInt();
+        System.out.println("Enter your name:");
+        name = sc.next();
         socket = new Socket("localhost", port);
-        clientThread = new ClientOut(socket);
+        System.out.println("connect to port "+ port + " success!");
+        clientThread = new ClientOut(socket, name);
         clientThread.start();
 
         // This is a main blocking thread listening to the socket and print message on the console
@@ -24,7 +30,7 @@ public class ClientIn {
 
     public static void main(String argus[]) throws IOException {
 
-        new ClientIn("newC");
+        new ClientIn();
 
 //        ArrayList<User> users = new ArrayList<>();
 //        Scanner scanner = new Scanner(System.in);  // Reading from System.in
