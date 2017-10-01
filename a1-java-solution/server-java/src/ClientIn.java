@@ -13,11 +13,11 @@ public class ClientIn {
         Scanner sc = new Scanner(System.in);
         System.out.println("Enter the port you want to connect:");
         int port = sc.nextInt();
-        System.out.println("Enter your name:");
-        name = sc.next();
+//        System.out.println("Enter your name:");
+//        name = sc.next();
         socket = new Socket("localhost", port);
         System.out.println("connect to port "+ port + " success!");
-        clientThread = new ClientOut(socket, name);
+        clientThread = new ClientOut(socket);
         clientThread.start();
 
         // This is a main blocking thread listening to the socket and print message on the console
@@ -31,33 +31,6 @@ public class ClientIn {
     public static void main(String argus[]) throws IOException {
 
         new ClientIn();
-
-//        ArrayList<User> users = new ArrayList<>();
-//        Scanner scanner = new Scanner(System.in);  // Reading from System.in
-//
-//        int uid;
-//        boolean shouldBreak = false;
-//
-//        while (!shouldBreak){
-//            System.out.println("Enter a command: ");
-//            String command = scanner.next();
-//            switch (command){
-//                case "c":
-//                    System.out.println("Enter a uid: ");
-//                    uid = scanner.nextInt();
-//                    User newUser = new User(uid);
-//                    users.add(newUser);
-//                    break;
-//
-//                case "q":
-//                    shouldBreak = true;
-//                    break;
-//
-//                default:
-//                    System.out.println("Wrong command");
-//                    break;
-//            }
-//        }
     }
 
 

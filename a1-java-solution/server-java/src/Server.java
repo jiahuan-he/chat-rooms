@@ -26,7 +26,6 @@ public class Server implements ClientListener{
             serverSocket = new ServerSocket(Integer.parseInt(argus[0]));
         }
 
-
         System.out.println("Socket listening on "+serverSocket.getLocalPort());
         Socket newSocket;
         while ((newSocket = serverSocket.accept())!= null){

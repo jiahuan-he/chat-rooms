@@ -37,7 +37,7 @@ class ServerClientThread extends Thread{
         String message;
         switch (type){
             case JOIN:
-                message =">> Welcome new user joining room: "+room.name + "\n>> Current users: " + room.connectedSockets.size();
+                message =">> Welcome "+this.name+" joining room: "+room.name + "\n>> Current users: " + room.connectedSockets.size();
                 break;
             case TEXT:
                 if(text == null){
@@ -58,6 +58,29 @@ class ServerClientThread extends Thread{
             BufferedReader socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             ChatRoom defaultRoom = (ChatRoom) chatRooms.values().toArray()[0];
             this.currentRoom = defaultRoom;
+            sendTo(this.socket, ">> Please enter your name: ");
+            String name;
+            if((name = socketReader.readLine()) != null){
+                while (this.name == null || this.name.isEmpty()){
+                    boolean duplicateName = false;
+                    for(ChatRoom room: this.chatRooms.values()){
+                        for (ServerClientThread client: room.connectedSockets){
+                            if (client.name != null && client.name.equals(name)){
+                                sendTo(this.socket, ">> This name already exists");
+                                sendTo(this.socket, ">> Please enter your name: ");
+                                duplicateName = true;
+                                break;
+                            }
+                        }
+                    }
+                    if(duplicateName){
+                        name = socketReader.readLine();
+                    }
+                    else {
+                        this.name = name.trim();
+                    }
+                }
+            }
             message = getMessage(TYPE.JOIN,defaultRoom, socket, null);
             broadCast(message, defaultRoom);
             for(String str: defaultRoom.history){
