@@ -8,7 +8,7 @@ import (
 
 type ChatRoom struct{
 	name string
-	connectedSockets []ServerClient
+	connectedSockets []*ServerClient
 	history []string
 }
 
@@ -20,10 +20,10 @@ func main() {
 	for {
 		newConn,_ := ln.Accept()
 		newClient := ServerClient{}
-		newClient.currentRoom = defaultRoom
-		newClient.joinedRooms = append(newClient.joinedRooms, defaultRoom)
-		newClient.conn = newConn
-		newClient.currentRoom.connectedSockets = append(newClient.currentRoom.connectedSockets, newClient)
+		newClient.currentRoom = &defaultRoom
+		newClient.joinedRooms = append(newClient.joinedRooms, &defaultRoom)
+		newClient.conn = &newConn
+		newClient.currentRoom.connectedSockets = append(newClient.currentRoom.connectedSockets, &newClient)
 		fmt.Println(len(defaultRoom.connectedSockets))
 		go newClient.newListener()
 	}
@@ -31,15 +31,15 @@ func main() {
 
 type ServerClient struct {
 	name        string
-	joinedRooms []ChatRoom
-	conn        net.Conn
-	currentRoom ChatRoom
+	joinedRooms []*ChatRoom
+	conn        *net.Conn
+	currentRoom *ChatRoom
 }
 
 func (client ServerClient) newListener()  {
 	// will listen for message to process ending in newline (\n)
 	for {
-		message, _ := bufio.NewReader(client.conn).ReadString('\n')
+		message, _ := bufio.NewReader(*client.conn).ReadString('\n')
 		// output message received
 		fmt.Print("Message Received:", string(message))
 		client.currentRoom.broadcast(message)
@@ -47,7 +47,7 @@ func (client ServerClient) newListener()  {
 }
 
 func (clent ServerClient) send(message string) {
-	clent.conn.Write([]byte(message + "\n"))
+	(*clent.conn).Write([]byte(message + "\n"))
 }
 
 func (chatRoom ChatRoom) broadcast(message string){
