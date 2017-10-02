@@ -18,7 +18,11 @@ func main() {
 	for {
 	//	 read in input from stdin
 		reader := bufio.NewReader(os.Stdin)
-		text, _ := reader.ReadString('\n')
+		text, err := reader.ReadString('\n')
+		if err != nil{
+			break
+		}
+
 		// send to ServerClient
 		fmt.Fprintf(conn, text)
 	}
@@ -27,7 +31,11 @@ func main() {
 func listen(conn net.Conn) {
 	for{
 		// listen for reply
-		message, _ := bufio.NewReader(conn).ReadString('\n')
+		message, err := bufio.NewReader(conn).ReadString('\n')
+		if(err != nil){
+			break
+		}
+
 		fmt.Print("Message from server: "+message)
 	}
 }
