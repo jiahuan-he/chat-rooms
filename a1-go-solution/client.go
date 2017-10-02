@@ -14,7 +14,6 @@ import (
 func main() {
 	conn, _ := net.Dial("tcp", "localhost:8088")
 
-
 	go listen(conn)
 	for {
 	//	 read in input from stdin
