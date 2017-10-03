@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	//"time"
-	//"sync"
+	"sync"
+	"sort"
 )
 
 type ChatRoom struct{
@@ -16,14 +16,16 @@ type ChatRoom struct{
 	history []string
 }
 
-
+type SafeMap struct {
+	m map[string]ChatRoom
+	mux sync.Mutex
+}
 
 func main() {
 	ln, _ := net.Listen("tcp", ":8088")
-	allRooms := map[string]ChatRoom{"default-room":ChatRoom{name:"default-room"}}
-	//allRoomsMap := sync.Map{}
-
-	defaultRoom := allRooms["default-room"]
+	allRooms := SafeMap{}
+	allRooms.m = map[string]ChatRoom{"default-room":ChatRoom{name:"default-room"}}
+	defaultRoom := allRooms.m["default-room"]
 
 	for {
 		newConn,_ := ln.Accept()
@@ -32,7 +34,6 @@ func main() {
 		newClient.joinedRooms = append(newClient.joinedRooms, &defaultRoom)
 		newClient.conn = &newConn
 		newClient.currentRoom.connectedSockets = append(newClient.currentRoom.connectedSockets, &newClient)
-		fmt.Println("log: current user number: "+ strconv.Itoa(len(defaultRoom.connectedSockets)))
 		go newClient.newListener(allRooms)
 	}
 }
@@ -44,8 +45,7 @@ type ServerClient struct {
 	currentRoom *ChatRoom
 }
 
-func (client *ServerClient) newListener(allRooms map[string]ChatRoom)  {
-	//Prompt user to enter their name
+func (client *ServerClient) newListener(allRooms SafeMap)  {
 	client.send("SYSTEM => Please enter your name: ")
 	name, _ := bufio.NewReader(*client.conn).ReadString('\n')
 	client.name = strings.TrimSuffix(name, "\n")
@@ -55,31 +55,41 @@ func (client *ServerClient) newListener(allRooms map[string]ChatRoom)  {
 		message, err := bufio.NewReader(*client.conn).ReadString('\n')
 		message = strings.TrimRight(strings.TrimSpace(message), "\n")
 		command := strings.Fields(message)
-		fmt.Print("Message Received:", string(message))
-		if err != nil{
+		if err != nil {
 			break
+		}
+		if len(command) == 0 || command == nil{
+			continue
 		}
 		switch command[0] {
 		case "/create":
-			//c:= make(chan ChatRoom)
 			for _,roomName := range command[1:] {
-				//TODO solve concurrency problem!!
-				if _, ok:=allRooms[roomName]; ok{
-					client.send("SYSTEM => Error: "+roomName+" already exists")
-					break
+				if _, ok:=allRooms.m[roomName]; ok{
+					(*client).send("SYSTEM => Error: "+roomName+" already exists")
+					continue
 				}
-				fmt.Println(roomName)
-
-				allRooms[roomName] = ChatRoom{name:roomName}
-				// A workaround
-				//time.Sleep(100*time.Millisecond)
-				client.send("SYSTEM => Success: "+roomName+" created")
+				allRooms.m[roomName] = ChatRoom{name:roomName}
+				fmt.Println("created: " + roomName)
+				(*client).send("SYSTEM => Success: "+roomName+" created")
 			}
+			println("rooms now: " +strconv.Itoa(len(allRooms.m)))
 
 		case "/leave":
 
 		case "/join":
 		case "/list":
+			keys := make([]string, len(allRooms.m))
+			i := 0
+			for k:= range allRooms.m{
+				keys[i] = k
+				i++
+			}
+			sort.Strings(keys)
+			for _, k:= range keys{
+				client.send("SYSTEM => " + k)
+			}
+
+
 		case "/switch":
 		case "/rename":
 		default:
@@ -89,18 +99,13 @@ func (client *ServerClient) newListener(allRooms map[string]ChatRoom)  {
 	}
 }
 
-func (clent *ServerClient) send(message string) {
-	(*clent.conn).Write([]byte(message + "\n"))
+func (client *ServerClient) send(message string) {
+	fmt.Println("sending: " + message)
+	(*client.conn).Write([]byte(message + "\n"))
 }
 
 func (chatRoom *ChatRoom) broadcast(message string, selfClient *ServerClient){
 	for _,client := range chatRoom.connectedSockets{
-
-		//fmt.Println(client.name)
-		//fmt.Println("other: "+client.name)
-		//if(selfClient != nil){
-		//	fmt.Println("self: "+selfClient.name)
-		//}
 		if client == selfClient{
 			continue
 		}

@@ -9,8 +9,6 @@ import (
 
 // connect to this ServerClient
 
-
-
 func main() {
 	conn, _ := net.Dial("tcp", "localhost:8088")
 
@@ -29,13 +27,14 @@ func main() {
 }
 
 func listen(conn net.Conn) {
+	reader := bufio.NewReader(conn)
 	for{
 		// listen for reply
-		message, err := bufio.NewReader(conn).ReadString('\n')
+		// Bug fixed here.
+		message, err := reader.ReadString('\n')
 		if(err != nil){
 			break
 		}
-
-		fmt.Print("Message from server: "+message)
+		fmt.Print(message)
 	}
 }
