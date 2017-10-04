@@ -17,24 +17,24 @@ type ChatRoom struct{
 }
 
 type SafeMap struct {
-	m map[string]ChatRoom
+	m map[string]*ChatRoom
 	mux sync.Mutex
 }
 
 func main() {
 	ln, _ := net.Listen("tcp", ":8088")
 	allRooms := SafeMap{}
-	allRooms.m = map[string]ChatRoom{"default-room":ChatRoom{name:"default-room"}}
+	allRooms.m = map[string]*ChatRoom{"default-room":&ChatRoom{name:"default-room"}}
 	defaultRoom := allRooms.m["default-room"]
 
 	for {
 		newConn,_ := ln.Accept()
-		newClient := ServerClient{}
-		newClient.currentRoom = &defaultRoom
-		newClient.joinedRooms = append(newClient.joinedRooms, &defaultRoom)
+		newClient := &ServerClient{}
+		newClient.currentRoom = defaultRoom
+		newClient.joinedRooms = append(newClient.joinedRooms, defaultRoom)
 		newClient.conn = &newConn
-		newClient.currentRoom.connectedSockets = append(newClient.currentRoom.connectedSockets, &newClient)
-		go newClient.newListener(allRooms)
+		newClient.currentRoom.connectedSockets= append(newClient.currentRoom.connectedSockets, newClient)
+		go newClient.newListener(&allRooms)
 	}
 }
 
@@ -45,11 +45,11 @@ type ServerClient struct {
 	currentRoom *ChatRoom
 }
 
-func (client *ServerClient) newListener(allRooms SafeMap)  {
+func (client *ServerClient) newListener(allRooms *SafeMap)  {
 	client.send("SYSTEM => Please enter your name: ")
 	name, _ := bufio.NewReader(*client.conn).ReadString('\n')
 	client.name = strings.TrimSuffix(name, "\n")
-	client.currentRoom.broadcast("Welcome "+client.name+" joining " + client.currentRoom.name, nil)
+	client.currentRoom.broadcast("SYSTEM => Welcome "+client.name+" joining " + client.currentRoom.name, nil)
 
 	for {
 		message, err := bufio.NewReader(*client.conn).ReadString('\n')
@@ -68,15 +68,43 @@ func (client *ServerClient) newListener(allRooms SafeMap)  {
 					(*client).send("SYSTEM => Error: "+roomName+" already exists")
 					continue
 				}
-				allRooms.m[roomName] = ChatRoom{name:roomName}
+				allRooms.m[roomName] = &ChatRoom{name:roomName}
 				fmt.Println("created: " + roomName)
 				(*client).send("SYSTEM => Success: "+roomName+" created")
 			}
 			println("rooms now: " +strconv.Itoa(len(allRooms.m)))
 
 		case "/leave":
+			for _, roomName := range command[1:]  {
+				if room,ok := allRooms.m[roomName]; ok{
+					for i := 0; i < len(room.connectedSockets); i++ {
+						if room.connectedSockets[i] == client{
+							room.connectedSockets = append(room.connectedSockets[:i],room.connectedSockets[i+1:]...)
+							for k:= 0; k<len(client.joinedRooms);k++ {
+								if client.joinedRooms[i] == room{
+                                    client.joinedRooms = append(client.joinedRooms[:k], client.joinedRooms[k+1:]...)
+								}
+								if client.currentRoom == room{
+									client.currentRoom = nil
+								}
+							}
+						}
+					}
+				} else {
+					(*client).send("SYSTEM => Error: "+roomName+" doesn't exist")
+				}
+			}
 
 		case "/join":
+            for _, roomName := range command[1:] {
+				if room, ok:= allRooms.m[roomName]; ok{
+					room.connectedSockets = append(room.connectedSockets, client)
+					client.joinedRooms = append(client.joinedRooms, room)
+					room.broadcast("SYSTEM => Welcome "+client.name+" joining " + room.name, nil)
+				} else {
+					client.send("SYSTEM => Error: "+roomName+" doesn't exist")
+				}
+			}
 		case "/list":
 			keys := make([]string, len(allRooms.m))
 			i := 0
@@ -88,7 +116,6 @@ func (client *ServerClient) newListener(allRooms SafeMap)  {
 			for _, k:= range keys{
 				client.send("SYSTEM => " + k)
 			}
-
 
 		case "/switch":
 		case "/rename":
