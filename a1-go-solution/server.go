@@ -112,36 +112,23 @@ func (client *ServerClient) newListener(allRooms *SafeRoomMap)  {
 				}
 				allRooms.m[roomName] = &ChatRoom{name:roomName, connectedSockets: &SafeSocketsMap{m:map[string]*ServerClient{}}}
 				fmt.Println("created: " + roomName)
-				(*client).send("SYSTEM => Success: "+roomName+" created")
+				client.send("SYSTEM => Success: "+roomName+" created")
 			}
 
 		case "/leave":
 			for _, roomName := range command[1:]  {
 				if room,ok := allRooms.m[roomName]; ok{
-					//hasSocket := false
 					if _, ok := room.connectedSockets.m[client.name]; ok {
 						delete(room.connectedSockets.m, client.name)
                         delete(client.joinedRooms.m, roomName)
+
+						if client.currentRoom.name == roomName {
+							client.currentRoom = nil
+							client.send("SYSTEM => Note: You just left your current room, please switch to another room to send messages")
+						}
 					} else {
 						client.send("SYSTEM => Error: You are not in room: "+ roomName)
 					}
-					//for i := 0; i < len(room.connectedSockets); i++ {
-					//	if room.connectedSockets[i] == client{
-					//		hasSocket = true
-					//		room.connectedSockets = append(room.connectedSockets[:i],room.connectedSockets[i+1:]...)
-					//		for k:= 0; k<len(client.joinedRooms);k++ {
-					//			if client.joinedRooms[i] == room{
-                     //               client.joinedRooms = append(client.joinedRooms[:k], client.joinedRooms[k+1:]...)
-					//			}
-					//			if client.currentRoom == room{
-					//				client.currentRoom = nil
-					//			}
-					//		}
-					//	}
-					//	if !hasSocket {
-					//		client.send("SYSTEM => You have not join "+ roomName)
-					//	}
-					//}
 				} else {
 					(*client).send("SYSTEM => Error: "+roomName+" doesn't exist")
 				}
@@ -160,15 +147,6 @@ func (client *ServerClient) newListener(allRooms *SafeRoomMap)  {
 				} else {
 					client.send("SYSTEM => Error: " + roomName + " doesn't exist")
 				}
-
-				////alreadlyJoined := false
-				//if room, ok:= allRooms.m[roomName]; ok{
-				//	room.connectedSockets = append(room.connectedSockets, client)
-				//	client.joinedRooms = append(client.joinedRooms, room)
-				//	room.broadcast("SYSTEM => Welcome "+client.name+" joining " + room.name, nil)
-				//} else {
-				//	client.send("SYSTEM => Error: "+roomName+" doesn't exist")
-				//}
 			}
 		case "/list":
 			keys := make([]string, len(allRooms.m))
@@ -179,14 +157,51 @@ func (client *ServerClient) newListener(allRooms *SafeRoomMap)  {
 			}
 			sort.Strings(keys)
 			for _, k:= range keys{
-				client.send("SYSTEM => " + k)
+				_, joined:= client.joinedRooms.m[k]
+				current := k == client.currentRoom.name
+				if current&&joined {
+
+					client.send("SYSTEM => (current) (joined) "+k)
+				} else if joined{
+					client.send("SYSTEM =>           (joined) "+ k)
+				} else {
+					client.send("SYSTEM =>                    " + k)
+				}
+
+
 			}
 
 		case "/switch":
+			if len(command) != 2{
+				client.send("SYSTEM => Error: Wrong number of arguments")
+				break
+			}
+			roomName := command[1]
+			if v,ok := allRooms.m[roomName]; ok {
+				if client.currentRoom.name == v.name {
+					client.send("SYSTEM => Error: Your current room is already this room")
+					break
+				}
+				if _, ok := client.joinedRooms.m[roomName]; ok{
+					client.currentRoom = v
+					client.send("SYSTEM => Success: You switched to room: "+roomName)
+					break
+				}
+				client.send("SYSTEM => Error: You have to join room: "+roomName+"before you can switch to it")
+
+
+			}
+
 		case "/rename":
 		default:
-			client.currentRoom.broadcast("("+client.currentRoom.name + ") " + client.name + " => "+ message, client)
-			client.send("("+client.currentRoom.name + ") me" + " => "+ message)
+			if client.currentRoom != nil{
+				client.currentRoom.broadcast("("+client.currentRoom.name + ") " + client.name + " => "+ message, client)
+				client.send("("+client.currentRoom.name + ") me" + " => "+ message)
+			} else {
+				client.send("SYSTEM => Error: your current room is empty")
+			}
+
+
 		}
 	}
 }
