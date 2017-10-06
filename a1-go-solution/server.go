@@ -8,7 +8,6 @@ import (
 	"strings"
 	"sync"
 	"sort"
-	//"io/ioutil"
 )
 
 type ChatRoom struct{
@@ -51,19 +50,8 @@ type ServerClient struct {
 }
 
 func (client *ServerClient) newListener(allRooms *SafeRoomMap)  {
-	//client.send("SYSTEM => Please enter your name: ")
-	//var lastname string
 
 	for {
-		//if  _, ok := allRooms.m["default-room"].connectedSockets.m["test"]; ok{
-		//	fmt.Println("existing name: "+allRooms.m["default-room"].connectedSockets.m["test"].name)
-		//	fooRoom := allRooms.m["default-room"]
-		//	fooSockets := fooRoom.connectedSockets
-		//	fooClients := fooSockets.m
-		//	fooClient := fooClients["test"]
-		//	fmt.Println(fooClient)
-		//}
-
 		client.send("SYSTEM => Please enter your name: ")
 		// Bug fixed here: process name here at the beginning
 		name, err := bufio.NewReader(*client.conn).ReadString('\n')
@@ -107,7 +95,7 @@ func (client *ServerClient) newListener(allRooms *SafeRoomMap)  {
 		case "/create":
 			for _,roomName := range command[1:] {
 				if _, ok:=allRooms.m[roomName]; ok{
-					(*client).send("SYSTEM => Error: "+roomName+" already exists")
+					client.send("SYSTEM => Error: "+roomName+" already exists")
 					continue
 				}
 				allRooms.m[roomName] = &ChatRoom{name:roomName, connectedSockets: &SafeSocketsMap{m:map[string]*ServerClient{}}}
@@ -121,7 +109,7 @@ func (client *ServerClient) newListener(allRooms *SafeRoomMap)  {
 					if _, ok := room.connectedSockets.m[client.name]; ok {
 						delete(room.connectedSockets.m, client.name)
                         delete(client.joinedRooms.m, roomName)
-
+						client.send("SYSTEM => Success: You left room: "+ roomName)
 						if client.currentRoom.name == roomName {
 							client.currentRoom = nil
 							client.send("SYSTEM => Note: You just left your current room, please switch to another room to send messages")
@@ -144,6 +132,14 @@ func (client *ServerClient) newListener(allRooms *SafeRoomMap)  {
 					room.connectedSockets.m[client.name] = client
 					client.joinedRooms.m[roomName] = allRooms.m[roomName]
 					client.send("SYSTEM => Success: joined " + roomName)
+
+					if len(room.history) != 0{
+						client.send("SYSTEM => History: ")
+						for _, m := range room.history{
+							client.send(m)
+						}
+					}
+
 				} else {
 					client.send("SYSTEM => Error: " + roomName + " doesn't exist")
 				}
@@ -158,7 +154,15 @@ func (client *ServerClient) newListener(allRooms *SafeRoomMap)  {
 			sort.Strings(keys)
 			for _, k:= range keys{
 				_, joined:= client.joinedRooms.m[k]
-				current := k == client.currentRoom.name
+
+				current := false
+				if client.currentRoom == nil{
+					current = false
+				} else{
+					current = k == client.currentRoom.name
+				}
+
+
 				if current&&joined {
 
 					client.send("SYSTEM => (current) (joined) "+k)
@@ -167,8 +171,6 @@ func (client *ServerClient) newListener(allRooms *SafeRoomMap)  {
 				} else {
 					client.send("SYSTEM =>                    " + k)
 				}
-
-
 			}
 
 		case "/switch":
@@ -178,7 +180,7 @@ func (client *ServerClient) newListener(allRooms *SafeRoomMap)  {
 			}
 			roomName := command[1]
 			if v,ok := allRooms.m[roomName]; ok {
-				if client.currentRoom.name == v.name {
+				if client.currentRoom != nil && client.currentRoom.name == v.name {
 					client.send("SYSTEM => Error: Your current room is already this room")
 					break
 				}
@@ -188,20 +190,23 @@ func (client *ServerClient) newListener(allRooms *SafeRoomMap)  {
 					break
 				}
 				client.send("SYSTEM => Error: You have to join room: "+roomName+"before you can switch to it")
-
-
 			}
 
 		case "/rename":
 		default:
 			if client.currentRoom != nil{
-				client.currentRoom.broadcast("("+client.currentRoom.name + ") " + client.name + " => "+ message, client)
+				// Send to the client who is talking
 				client.send("("+client.currentRoom.name + ") me" + " => "+ message)
+
+				// Send to the others in the room
+				message := "("+client.currentRoom.name + ") " + client.name + " => "+ message
+				client.currentRoom.history = append(client.currentRoom.history, message)
+				client.currentRoom.broadcast(message, client)
+
 			} else {
 				client.send("SYSTEM => Error: your current room is empty")
+				client.send("SYSTEM =>        Please use /switch <ROOM_NAME> to switch to a room")
 			}
-
-
 		}
 	}
 }
