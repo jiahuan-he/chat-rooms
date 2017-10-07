@@ -18,9 +18,8 @@ func main() {
 		reader := bufio.NewReader(os.Stdin)
 		text, err := reader.ReadString('\n')
 		if err != nil{
-			break
+			return
 		}
-
 		// send to ServerClient
 		fmt.Fprintf(conn, text)
 	}

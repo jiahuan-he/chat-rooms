@@ -33,12 +33,18 @@ func main() {
     defaultRoom := &ChatRoom{name:"default-room", connectedSockets: &SafeSocketsMap{}}
     defaultRoom.connectedSockets.m = make(map[string]*ServerClient)
     allRooms.m[defaultRoom.name] = defaultRoom
-
-	for {
+	numOfUsers := 0
+	for ;;numOfUsers++{
 		newConn,_ := ln.Accept()
 		newClient := &ServerClient{joinedRooms:&SafeRoomMap{m: map[string]*ChatRoom{}}}
 		newClient.conn = &newConn
-		go newClient.newListener(allRooms)
+
+		if numOfUsers < 10{
+			go newClient.newListener(allRooms)
+		} else{
+		    newClient.send("SYSTEM => Sorry, the chat room app is full (max 10)")
+			(*newClient.conn).Close()
+		}
 	}
 }
 
@@ -161,7 +167,6 @@ func (client *ServerClient) newListener(allRooms *SafeRoomMap)  {
 				} else{
 					current = k == client.currentRoom.name
 				}
-
 
 				if current&&joined {
 
