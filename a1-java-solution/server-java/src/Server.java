@@ -69,7 +69,7 @@ public class Server implements ClientListener{
 
     }
 
-    public static void main(String argus[]){
+    public static void main(String[] argus){
         try {
                 new Server().startServer(argus);
 

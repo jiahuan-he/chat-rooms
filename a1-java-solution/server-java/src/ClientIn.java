@@ -21,8 +21,21 @@ public class ClientIn {
         // This is a main blocking thread listening to the socket and print message on the console
         BufferedReader socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         String message;
+        final String yellow = (char)27 + "[33m";
+        final String red = (char)27 + "[31m";
+        final String green = (char)27 + "[32m";
+        final String black = (char)27 + "[30m";
         while ((message = socketReader.readLine()) != null) {
-            System.out.println(message);
+            if (message.startsWith("SYSTEM => Success")){
+                System.out.print(green+message);
+            } else if (message.startsWith("SYSTEM => Error")){
+                System.out.print(red+message);
+            } else if (message.startsWith("SYSTEM => ")) {
+                System.out.print(yellow+message);
+            } else {
+                System.out.print(message);
+            }
+            System.out.println(black);
         }
     }
 

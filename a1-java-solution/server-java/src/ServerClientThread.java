@@ -134,7 +134,7 @@ class ServerClientThread extends Thread{
                                 sendTo(this.socket, "SYSTEM => Error: There is no room named "+m[i]);
                             }
                         }
-                        sendTo(this.socket, "SYSTEM => To join a new room, enter /join <ROOM_NAMES...>");
+//                        sendTo(this.socket, "SYSTEM => To join a new room, enter /join <ROOM_NAMES...>");
                         break;
 
                     case "/join":
