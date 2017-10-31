@@ -10,9 +10,7 @@ public class ClientIn {
     private ClientOut clientThread;
 
     ClientIn() throws IOException {
-        Scanner sc = new Scanner(System.in);
-        System.out.println("Enter the port you want to connect:");
-        int port = sc.nextInt();
+        int port = 8088;
 //        System.out.println("Enter your name:");
 //        name = sc.next();
         socket = new Socket("localhost", port);

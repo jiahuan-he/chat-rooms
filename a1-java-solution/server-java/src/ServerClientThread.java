@@ -3,8 +3,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.HashMap;
-import java.util.Set;
+import java.util.*;
 
 class ServerClientThread extends Thread{
 
@@ -28,22 +27,17 @@ class ServerClientThread extends Thread{
         TEXT,
     }
 
-//    enum MESSAGE{
-//        WELCOME,
-//        TEXT,
-//    }
-
     private String getMessage(TYPE type, ChatRoom room, Socket socket, String text){
         String message;
         switch (type){
             case JOIN:
-                message =">> Welcome "+this.name+" joining room: "+room.name + "\n>> Current users: " + room.connectedSockets.size();
+                message ="SYSTEM => Welcome "+this.name+" joining room: "+room.name;
                 break;
             case TEXT:
                 if(text == null){
                     text = " ";
                 }
-                message =room.name+"> " + this.name+ " says:" + text;
+                message ="(" + room.name+") " + this.name+ " => " + text;
                 break;
 
             default:
@@ -58,7 +52,7 @@ class ServerClientThread extends Thread{
             BufferedReader socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             ChatRoom defaultRoom = (ChatRoom) chatRooms.values().toArray()[0];
             this.currentRoom = defaultRoom;
-            sendTo(this.socket, ">> Please enter your name: ");
+            sendTo(this.socket, "SYSTEM => Please enter your name: ");
             String name;
             if((name = socketReader.readLine()) != null){
                 while (this.name == null || this.name.isEmpty()){
@@ -66,8 +60,8 @@ class ServerClientThread extends Thread{
                     for(ChatRoom room: this.chatRooms.values()){
                         for (ServerClientThread client: room.connectedSockets){
                             if (client.name != null && client.name.equals(name)){
-                                sendTo(this.socket, ">> This name already exists");
-                                sendTo(this.socket, ">> Please enter your name: ");
+                                sendTo(this.socket, "SYSTEM => Error: This name already exists");
+                                sendTo(this.socket, "SYSTEM => Please enter your name: ");
                                 duplicateName = true;
                                 break;
                             }
@@ -106,22 +100,22 @@ class ServerClientThread extends Thread{
                 switch (command){
                     case "/create":
                         if(m.length <= 1){
-                            sendTo(this.socket,">> Wrong parameters");
+                            sendTo(this.socket,"SYSTEM => Error: Wrong parameters");
                             break;
                         }
                         for(int i=1; i<m.length; i++){
                             if(this.server.createChatRoom(m[i])){
-                                sendTo(this.socket, ">> Create room: "+m[i]+" success!");
+                                sendTo(this.socket, "SYSTEM => Success: Created room: "+m[i]);
                             }
                             else{
-                                sendTo(this.socket, ">> Create room: "+m[i]+" failed. The room with this name already exists");
+                                sendTo(this.socket, "SYSTEM => Error: Room: " +m[i]+ " already exists");
                             }
                         }
                         break;
 
                     case "/leave":
                         if(m.length <= 1){
-                            sendTo(this.socket, ">> Wrong parameters");
+                            sendTo(this.socket, "SYSTEM => Error: Wrong parameters");
                             break;
                         }
 
@@ -134,27 +128,27 @@ class ServerClientThread extends Thread{
                                     throw new java.lang.RuntimeException("Leave chat room error!");
                                 }
                                 this.chatRooms.remove(m[i]);
-                                sendTo(this.socket, ">> Leave room: "+m[i]+" success!");
+                                sendTo(this.socket, "SYSTEM => Success: Leave room: "+m[i]+" success!");
                             }
                             else{
-                                sendTo(this.socket, ">> Leave room: "+m[i]+" failed. There is no room named "+m[i]);
+                                sendTo(this.socket, "SYSTEM => Error: There is no room named "+m[i]);
                             }
                         }
-                        sendTo(this.socket, " >> To join a new room, enter /join <ROOM_NAMES...>");
+                        sendTo(this.socket, "SYSTEM => To join a new room, enter /join <ROOM_NAMES...>");
                         break;
 
                     case "/join":
 
                         for(int i=1; i<m.length; i++){
                             if(this.server.joinChatRoom(this, m[i])){
-                                sendTo(this.socket, ">> Join room: "+m[i]+" success!");
+                                sendTo(this.socket, "SYSTEM => Success: Join room: "+m[i]+" success!");
 //                                broadCast(getMessage(TYPE.JOIN, chatRooms.get(m[i]), socket, null), chatRooms.get(m[i]));
                                 for (String str: chatRooms.get(m[i]).history){
                                     sendTo(this.socket, str);
                                 }
                             }
                             else{
-                                sendTo(this.socket, ">> Join room: "+m[i]+" failed. There is no room named "+m[i]);
+                                sendTo(this.socket, "SYSTEM => Error: There is no room named "+m[i]);
                             }
 
                         }
@@ -164,51 +158,60 @@ class ServerClientThread extends Thread{
                     case "/list":
                         Set<String> rooms = this.server.listChatRooms();
                         Set<String> joinedRooms = this.chatRooms.keySet();
+                        List<String> roomList = new LinkedList<>();
                         joinedRooms.retainAll(rooms);
+                        roomList.addAll(rooms);
+                        roomList.sort(new Comparator<String>() {
+                            @Override
+                            public int compare(String o1, String o2) {
+                                return o1.compareTo(o2);
+                            }
+                        });
+                        Collections.sort(roomList);
 
                         if(this.currentRoom == null){
-                            sendTo(socket, "Warning: you don't have a current room. Join and switch to a room to speak");
+                            sendTo(socket, "SYSTEM => Warning: you don't have a current room. Join and switch to a room to speak");
                         }
 
-                        for (String room: rooms){
+                        for (String room: roomList){
                             if (joinedRooms.contains(room)){
                                 if (this.currentRoom != null && room.equals(this.currentRoom.name)){
-                                    sendTo(this.socket, ">> (joined) (current) " + room);
+                                    sendTo(this.socket, "SYSTEM => (joined) (current) " + room);
                                 }
                                 else{
-                                    sendTo(this.socket, ">> (joined)           " + room);
+                                    sendTo(this.socket, "SYSTEM => (joined)           " + room);
                                 }
 
                             }
                             else{
-                                sendTo(this.socket, ">>                    " + room);
+                                sendTo(this.socket, "SYSTEM =>                    " + room);
                             }
                         }
                         break;
 
                     case "/switch":
                         if(m.length != 2){
-                            sendTo(this.socket,">> Wrong parameters");
+                            sendTo(this.socket,"SYSTEM => Error: Wrong parameters");
                             break;
                         }
                         if(this.chatRooms.containsKey(m[1])){
                             this.currentRoom = this.chatRooms.get(m[1]);
-                            sendTo(this.socket, ">> Switched to room: "+m[1]+" success!");
+                            sendTo(this.socket, "SYSTEM => Success: Switched to room: "+m[1]);
                         }
                         else{
-                            sendTo(this.socket, ">> Switch to room: "+m[1]+" failed. Either there is no room named "+m[1] + " or you have not joined "+ m[1]);
+                            sendTo(this.socket, "SYSTEM => Error: Either there is no room named "+m[1] + " or you have not joined "+ m[1]);
                         }
                         break;
 
                     case "/rename":
                         if(m.length != 2){
-                            sendTo(this.socket, ">> Wrong parameters");
+                            sendTo(this.socket, "SYSTEM => Error: Wrong parameters");
                             break;
                         }
                         for(ChatRoom room: this.chatRooms.values()){
                             for (ServerClientThread client: room.connectedSockets){
                                 if (client.name != null && client.name.equals(m[1])){
-                                    sendTo(this.socket, ">> This name already exists");
+                                    sendTo(this.socket, "SYSTEM => Error: This name already exists");
                                     break;
                                 }
                             }
@@ -218,7 +221,7 @@ class ServerClientThread extends Thread{
 
                     default:
                         if(this.currentRoom == null){
-                            this.sendTo(socket, "Your current room is empty. You might have to join and switch to a room");
+                            this.sendTo(socket, "SYSTEM => Error: Your current room is empty. You might have to join and switch to a room");
                         }
                         else{
                             message = getMessage(TYPE.TEXT, this.currentRoom, socket, newMessage);
