@@ -28,7 +28,9 @@ type SafeRoomMap struct {
 }
 
 func main() {
-	ln, _ := net.Listen("tcp", ":8088")
+	PORT := "8088"
+	ln, _ := net.Listen("tcp", ":"+PORT)
+	fmt.Println("Server started on port: "+PORT)
 	allRooms := &SafeRoomMap{}
 	allRooms.m = map[string]*ChatRoom{}
     defaultRoom := &ChatRoom{name:"default-room", connectedSockets: &SafeSocketsMap{}}
@@ -42,6 +44,7 @@ func main() {
 
 		if numOfUsers < 10{
 			go newClient.newListener(allRooms)
+			fmt.Println("New user connected")
 		} else{
 		    newClient.send("SYSTEM => Sorry, the chat room app is full (max 10)")
 			(*newClient.conn).Close()
@@ -108,6 +111,7 @@ func (client *ServerClient) newListener(allRooms *SafeRoomMap)  {
 				allRooms.m[roomName] = &ChatRoom{name:roomName, connectedSockets: &SafeSocketsMap{m:map[string]*ServerClient{}}}
 				fmt.Println("created: " + roomName)
 				client.send("SYSTEM => Success: "+roomName+" created")
+				fmt.Println("New room: "+roomName+" created")
 			}
 
 		case "/leave":
@@ -196,6 +200,8 @@ func (client *ServerClient) newListener(allRooms *SafeRoomMap)  {
 					break
 				}
 				client.send("SYSTEM => Error: You have to join room: "+roomName+" before you can switch to it")
+			} else {
+				client.send("SYSTEM => Error: You have to create room: "+roomName+" before you can switch to it")
 			}
 
 		case "/rename":
@@ -219,9 +225,10 @@ func (client *ServerClient) newListener(allRooms *SafeRoomMap)  {
 
 func (client *ServerClient) send(message string) {
 	fmt.Println("sending: " + message)
-	first, second := (*client.conn).Write([]byte(message + "\n"))
-	fmt.Println(first)
-	fmt.Println(second)
+	_, err := (*client.conn).Write([]byte(message + "\n"))
+	if err != nil{
+		fmt.Println(err)
+	}
 }
 
 func (chatRoom *ChatRoom) broadcast(message string, selfClient *ServerClient){
