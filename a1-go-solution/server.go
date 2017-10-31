@@ -1,5 +1,6 @@
 package main
 
+
 import (
 	"bufio"
 	"net"
@@ -194,7 +195,7 @@ func (client *ServerClient) newListener(allRooms *SafeRoomMap)  {
 					client.send("SYSTEM => Success: You switched to room: "+roomName)
 					break
 				}
-				client.send("SYSTEM => Error: You have to join room: "+roomName+"before you can switch to it")
+				client.send("SYSTEM => Error: You have to join room: "+roomName+" before you can switch to it")
 			}
 
 		case "/rename":
@@ -218,7 +219,9 @@ func (client *ServerClient) newListener(allRooms *SafeRoomMap)  {
 
 func (client *ServerClient) send(message string) {
 	fmt.Println("sending: " + message)
-	(*client.conn).Write([]byte(message + "\n"))
+	first, second := (*client.conn).Write([]byte(message + "\n"))
+	fmt.Println(first)
+	fmt.Println(second)
 }
 
 func (chatRoom *ChatRoom) broadcast(message string, selfClient *ServerClient){

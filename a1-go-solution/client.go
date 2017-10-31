@@ -5,6 +5,8 @@ import "fmt"
 import "bufio"
 import (
 	"os"
+	"strings"
+	"github.com/fatih/color"
 )
 
 // connect to this ServerClient
@@ -34,6 +36,15 @@ func listen(conn net.Conn) {
 		if(err != nil){
 			break
 		}
-		fmt.Print(message)
+
+		if strings.HasPrefix(message, "SYSTEM => Success:"){
+			color.Green(message)
+		} else if strings.HasPrefix(message, "SYSTEM => Error:"){
+			color.Red(message)
+		} else if strings.HasPrefix(message, "SYSTEM => ") {
+			color.Yellow(message)
+		} else {
+			fmt.Print(message)
+		}
 	}
 }
