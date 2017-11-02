@@ -1,6 +1,5 @@
 package server;
 
-import client.ChatClient;
 import client.Client;
 
 import java.rmi.RemoteException;
@@ -11,18 +10,24 @@ import java.util.HashMap;
 
 class Room{
     String name;
-    HashMap<String, Client> clients;
+    HashMap<String, Client> clients = new HashMap<>();
     Room(String name){
         this.name = name;
+
     }
 }
 
 public class ChatServer implements Server{
     HashMap<String, Client> clients = new HashMap<>();
     HashMap<String, Room> rooms = new HashMap<>();
+    HashMap<String, String> clientCurrentRoom = new HashMap<>();
+    public enum type{
+        MESSAGE,
+        PLAIN
+    }
 
+    private ChatServer(){
 
-    ChatServer(){
         String room = "default-room";
         rooms.put(room, new server.Room(room));
     }
@@ -33,6 +38,13 @@ public class ChatServer implements Server{
             if (clients.get(client.getName()) == null){
                 this.clients.put(client.getName(), client);
                 rooms.get("default-room").clients.put(client.getName(), client);
+                clientCurrentRoom.put(client.getName(), "default-room");
+                broadcast(
+                        "SYSTEM => Welcome new user \"" + client.getName()+"\" joining room \"default-room\"",
+                        client.getName(),
+                        type.PLAIN
+                );
+
             } else {
                 // TODO handle duplicate users
 
@@ -40,7 +52,7 @@ public class ChatServer implements Server{
         } catch (RemoteException e) {
             e.printStackTrace();
         }
-        System.out.println("CONNECTED");
+        System.out.println("Current clients "+ this.clients.keySet().size());
     }
 
 
@@ -70,8 +82,27 @@ public class ChatServer implements Server{
     }
 
     @Override
-    public void broadcast(String message, String client) {
+    public void broadcast(String message, String client, type type) throws RemoteException {
 
+        System.out.println(rooms.keySet());
+        System.out.println(rooms.get("default-room"));
+        System.out.println(rooms.get("default-room").clients.keySet());
+        String roomName = clientCurrentRoom.get(client);
+
+        if (message.trim() == ""){
+            return;
+        }
+        for (Client c: rooms.get(roomName).clients.values()){
+            switch (type){
+                case MESSAGE:
+                    c.print("("+roomName+") " + "("+message+")"+" => "+message);
+                    break;
+                case PLAIN:
+                    c.print(message);
+
+            }
+
+        }
     }
 
     public static void main(String[] argus){
@@ -82,9 +113,9 @@ public class ChatServer implements Server{
             // Bind the remote object's stub in the registry
             Registry registry = LocateRegistry.getRegistry();
             registry.bind("Server", stubServer);
-            System.err.println("server.Server ready");
+            System.err.println("Server ready");
         } catch (Exception e) {
-            System.err.println("server.Server exception: " + e.toString());
+            System.err.println("Server exception: " + e.toString());
             e.printStackTrace();
         }
     }

@@ -1,5 +1,6 @@
 package client;
 
+import server.ChatServer;
 import server.Server;
 
 import java.rmi.RemoteException;
@@ -11,22 +12,16 @@ import java.util.Scanner;
 public class ChatClient extends UnicastRemoteObject implements Client{
     Server server;
     public String name;
-
-    ChatClient(String name) throws RemoteException{
-        this.name = name;
-    }
-
+    String currentRoom;
 
     ChatClient(Server server, String name) throws RemoteException{
         this.server = server;
         this.name = name;
     }
 
-
-
     @Override
     public void print(String message) {
-
+        System.out.println(message);
     }
 
     @Override
@@ -51,8 +46,8 @@ public class ChatClient extends UnicastRemoteObject implements Client{
             ChatClient client = new ChatClient(stubServer, name);
             stubServer.connect(client);
             String line;
-            while ((line = scanner.nextLine())!= null){
-
+            while ((line = scanner.next())!= null){
+                stubServer.broadcast(line, client.getName(), ChatServer.type.MESSAGE);
             }
 
 
