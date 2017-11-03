@@ -30,7 +30,7 @@ namespace ClientNamespace
 			string line;
 			while ((line = inStream.ReadLine()) != null)
 			{
-				Console.WriteLine(line);
+                Console.WriteLine(line);
 			}
         }
        	

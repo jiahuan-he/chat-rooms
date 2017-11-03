@@ -238,6 +238,9 @@ class ServerClientThread extends Thread{
     }
 
     private void sendTo(Socket socket, String message) throws IOException{
+        if (socket.isClosed()){
+            return;
+        }
         PrintWriter socketPrinter = new PrintWriter(socket.getOutputStream(), true);
         socketPrinter.println(message);
         socketPrinter.flush();
