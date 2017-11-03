@@ -44,7 +44,10 @@ public class ChatClient extends UnicastRemoteObject implements Client{
             System.out.println("System => Please enter your name: ");
             String name = scanner.next();
             ChatClient client = new ChatClient(stubServer, name);
-            stubServer.connect(client);
+            if (!stubServer.connect(client)){
+                System.out.println("Connect failed");
+                return;
+            };
             String line;
             while ((line = scanner.nextLine())!= null){
                 String trimmedLine = line.trim();
@@ -62,7 +65,10 @@ public class ChatClient extends UnicastRemoteObject implements Client{
                         }
                     }
                 } else if (trimmedLine.startsWith("/list")){
-
+                    String[] rooms = stubServer.listRoom();
+                    for (String s: rooms){
+                        System.out.println(s);
+                    }
                 } else if (trimmedLine.startsWith("/join")){
 
                 } else if (trimmedLine.startsWith("/leave")){

@@ -6,6 +6,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.Arrays;
 import java.util.HashMap;
 
 class Room{
@@ -33,7 +34,7 @@ public class ChatServer implements Server{
     }
 
     @Override
-    public void connect(Client client) {
+    public boolean connect(Client client) {
         try {
             if (clients.get(client.getName()) == null){
                 this.clients.put(client.getName(), client);
@@ -44,15 +45,15 @@ public class ChatServer implements Server{
                         client.getName(),
                         type.PLAIN
                 );
-
             } else {
-                // TODO handle duplicate users
-
+                sendTo("SYSTEM => Error: this name already exists", client);
+                return false;
             }
         } catch (RemoteException e) {
             e.printStackTrace();
         }
         System.out.println("Current clients "+ this.clients.keySet().size());
+        return true;
     }
 
 
@@ -60,6 +61,15 @@ public class ChatServer implements Server{
     public void sendTo(String message, String client) {
         try {
             clients.get(client).print(message);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void sendTo(String message, Client client) {
+        try {
+            client.print(message);
         } catch (RemoteException e) {
             e.printStackTrace();
         }
@@ -89,8 +99,18 @@ public class ChatServer implements Server{
     }
 
     @Override
-    public void listRoom() {
+    public String[] listRoom() {
 
+
+        String[] roomNames = new String[rooms.size()];
+
+        int i=0;
+        for (String r: rooms.keySet()){
+            roomNames[i] = r;
+            i++;
+        }
+        Arrays.sort(roomNames);
+        return roomNames;
     }
 
     @Override
@@ -104,7 +124,7 @@ public class ChatServer implements Server{
         for (Client c: rooms.get(roomName).clients.values()){
             switch (type){
                 case MESSAGE:
-                    c.print("("+roomName+") " + "("+message+")"+" => "+message);
+                    c.print("("+roomName+") " + "("+c.getName()+")"+" => "+message);
                     break;
                 case PLAIN:
                     c.print(message);
