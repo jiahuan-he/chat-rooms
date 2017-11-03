@@ -57,8 +57,12 @@ public class ChatServer implements Server{
 
 
     @Override
-    public void sendTo() {
-
+    public void sendTo(String message, String client) {
+        try {
+            clients.get(client).print(message);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -72,8 +76,16 @@ public class ChatServer implements Server{
     }
 
     @Override
-    public void createRoom(String room) {
+    public void createRoom(String room, String client) {
+        String successMessage = "SYSTEM => Success: created room "+room;
+        String errorMessage = "SYSTEM => Error: room "+room + " is already existing";
 
+        if (rooms.get(room) == null){
+            rooms.put(room, new Room(room));
+            sendTo(successMessage, client);
+        } else {
+            sendTo(errorMessage, client);
+        }
     }
 
     @Override
@@ -84,12 +96,9 @@ public class ChatServer implements Server{
     @Override
     public void broadcast(String message, String client, type type) throws RemoteException {
 
-        System.out.println(rooms.keySet());
-        System.out.println(rooms.get("default-room"));
-        System.out.println(rooms.get("default-room").clients.keySet());
         String roomName = clientCurrentRoom.get(client);
 
-        if (message.trim() == ""){
+        if (message.trim().equals("")){
             return;
         }
         for (Client c: rooms.get(roomName).clients.values()){

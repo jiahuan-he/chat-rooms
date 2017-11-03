@@ -46,8 +46,32 @@ public class ChatClient extends UnicastRemoteObject implements Client{
             ChatClient client = new ChatClient(stubServer, name);
             stubServer.connect(client);
             String line;
-            while ((line = scanner.next())!= null){
-                stubServer.broadcast(line, client.getName(), ChatServer.type.MESSAGE);
+            while ((line = scanner.nextLine())!= null){
+                String trimmedLine = line.trim();
+
+                if (trimmedLine.equals("\n") || trimmedLine.equals("")){
+                    continue;
+                }
+
+                String[] sLine = trimmedLine.split(" ");
+                int length = sLine.length;
+                if (trimmedLine.startsWith("/create")){
+                    if (length>1){
+                        for (int i=1; i<length; i++){
+                            stubServer.createRoom(sLine[i], client.name);
+                        }
+                    }
+                } else if (trimmedLine.startsWith("/list")){
+
+                } else if (trimmedLine.startsWith("/join")){
+
+                } else if (trimmedLine.startsWith("/leave")){
+
+                } else if (trimmedLine.startsWith("switch")){
+
+                } else {
+                    stubServer.broadcast(line, client.getName(), ChatServer.type.MESSAGE);
+                }
             }
 
 
