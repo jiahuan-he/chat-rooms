@@ -70,7 +70,13 @@ public class ChatClient extends UnicastRemoteObject implements Client{
                         System.out.println(s);
                     }
                 } else if (trimmedLine.startsWith("/join")){
-
+                    if (length>1){
+                        for (int i=1; i<length; i++){
+                            stubServer.joinRoom(sLine[i], client.name);
+                        }
+                    } else {
+                        System.out.println("System => Error: wrong parameter");
+                    }
                 } else if (trimmedLine.startsWith("/leave")){
 
                 } else if (trimmedLine.startsWith("switch")){

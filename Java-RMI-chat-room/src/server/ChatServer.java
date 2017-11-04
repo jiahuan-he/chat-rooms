@@ -14,7 +14,6 @@ class Room{
     HashMap<String, Client> clients = new HashMap<>();
     Room(String name){
         this.name = name;
-
     }
 }
 
@@ -77,7 +76,13 @@ public class ChatServer implements Server{
 
     @Override
     public void joinRoom(String room, String client) {
-
+        Room r = rooms.get(room);
+        if (r == null){
+            sendTo("SYSTEM => Error: " + room + " doesn't exist", client);
+        } else {
+            r.clients.put(client, clients.get(client));
+            sendTo("SYSTEM => Success: Joined " + room, client);
+        }
     }
 
     @Override
@@ -100,7 +105,6 @@ public class ChatServer implements Server{
 
     @Override
     public String[] listRoom() {
-
 
         String[] roomNames = new String[rooms.size()];
 
@@ -128,9 +132,7 @@ public class ChatServer implements Server{
                     break;
                 case PLAIN:
                     c.print(message);
-
             }
-
         }
     }
 
