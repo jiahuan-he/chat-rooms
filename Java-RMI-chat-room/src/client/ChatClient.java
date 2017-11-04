@@ -65,10 +65,7 @@ public class ChatClient extends UnicastRemoteObject implements Client{
                         }
                     }
                 } else if (trimmedLine.startsWith("/list")){
-                    String[] rooms = stubServer.listRoom();
-                    for (String s: rooms){
-                        System.out.println(s);
-                    }
+                    stubServer.listRoom(client.name);
                 } else if (trimmedLine.startsWith("/join")){
                     if (length>1){
                         for (int i=1; i<length; i++){
@@ -78,8 +75,19 @@ public class ChatClient extends UnicastRemoteObject implements Client{
                         System.out.println("System => Error: wrong parameter");
                     }
                 } else if (trimmedLine.startsWith("/leave")){
-
-                } else if (trimmedLine.startsWith("switch")){
+                    if (length>1){
+                        for (int i=1; i<length; i++){
+                            stubServer.leaveRoom(sLine[i], client.name);
+                        }
+                    } else {
+                        System.out.println("System => Error: wrong parameter");
+                    }
+                } else if (trimmedLine.startsWith("/switch")){
+                    if (sLine.length == 2){
+                        stubServer.switchRoom(client.name, sLine[1]);
+                    } else {
+                        System.out.println("System => Error: wrong parameter");
+                    }
 
                 } else {
                     stubServer.broadcast(line, client.getName(), ChatServer.type.MESSAGE);

@@ -87,7 +87,21 @@ public class ChatServer implements Server{
 
     @Override
     public void leaveRoom(String room, String client) {
-
+        Room r = rooms.get(room);
+        if (r == null){
+            sendTo("SYSTEM => Error: " + room + " doesn't exist", client);
+        } else {
+            if (r.clients.get(client) == null){
+                sendTo("SYSTEM => Error: You are not in room " + room, client);
+            } else {
+                r.clients.remove(client);
+                sendTo("SYSTEM => Success: Left " + room, client);
+                if (clientCurrentRoom.get(client).equals(room)){
+                    clientCurrentRoom.remove(client);
+                    sendTo("SYSTEM => Warning: You are not in any room, please join and switch to a room", client);
+                }
+            }
+        }
     }
 
     @Override
@@ -104,17 +118,26 @@ public class ChatServer implements Server{
     }
 
     @Override
-    public String[] listRoom() {
-
+    public void listRoom(String client) throws RemoteException {
         String[] roomNames = new String[rooms.size()];
-
         int i=0;
+        Client c = clients.get(client);
         for (String r: rooms.keySet()){
             roomNames[i] = r;
             i++;
         }
         Arrays.sort(roomNames);
-        return roomNames;
+        System.err.println(client+" : " + clientCurrentRoom.get(client));
+        for (String r: roomNames){
+            if (clientCurrentRoom.get(client) != null && clientCurrentRoom.get(client).equals(r)){
+                c.print("SYSTEM => (current) (joined) " + r);
+            } else if (rooms.get(r).clients.containsKey(client)){
+                c.print("SYSTEM =>           (joined) " + r);
+            }  else {
+                c.print("SYSTEM =>                    " + r);
+            }
+        }
+
     }
 
     @Override
@@ -134,6 +157,18 @@ public class ChatServer implements Server{
                     c.print(message);
             }
         }
+    }
+
+    @Override
+    public void switchRoom(String client, String toRoom) throws RemoteException {
+        if (rooms.get(toRoom).clients.containsKey(client)){
+            clientCurrentRoom.put(client, toRoom);
+            clients.get(client).print("SYSTEM => Success: Switched to room "+ toRoom);
+        } else {
+            clients.get(client).print("SYSTEM => Error: You have to join "+ toRoom + " first");
+        }
+
+        System.err.println(clientCurrentRoom.get(client));
     }
 
     public static void main(String[] argus){

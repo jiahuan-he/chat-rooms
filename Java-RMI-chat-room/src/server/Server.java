@@ -14,6 +14,7 @@ public interface Server extends Remote{
     void joinRoom(String room, String client)throws RemoteException;
     void leaveRoom(String room, String client)throws RemoteException;
     void createRoom(String room, String client)throws RemoteException;
-    String[] listRoom()throws RemoteException;
+    void listRoom(String client)throws RemoteException;
     void broadcast(String message, String client, ChatServer.type type)throws RemoteException;
+    void switchRoom(String client, String toRoom) throws RemoteException;
 }
