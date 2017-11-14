@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"errors"
 	"fmt"
+	"../shared"
 )
 
 //////////////////////// Server
@@ -24,8 +25,6 @@ func NewServer() *Server{
 	defaultName := "default-room"
 	defaultRoom := NewChatRoom(defaultName)
 	chatRooms[defaultName] = defaultRoom
-
-
 	return s
 }
 
@@ -64,6 +63,33 @@ func (server *Server) Connect(client string, isSuccessful *bool) error{
 	}
 }
 
+
+func (server *Server) Speak(arg shared.Message, messageBack *string) error{
+	client:= server.clients[arg.Client]
+	room := client.currentRoom
+
+
+	for _, c := range room.clients{
+		*(c.messageQueue) = append((*(c.messageQueue)), arg.Message)
+		*messageBack = arg.Message
+	}
+	return nil
+}
+
+func (server *Server) Retrieve(client string, mq *[]string) error  {
+	if server.clients[client].messageQueue == nil {
+		mq = nil
+	} else {
+		for _, str := range *server.clients[client].messageQueue{
+			*mq = append((*mq), str)
+		}
+		server.clients[client].messageQueue = nil
+		server.clients[client].messageQueue = &[]string{}
+	}
+	//*server.clients[client].messageQueue.Messages = (*(server.clients[client].messageQueue.Messages))[:0]
+	return nil
+}
+
 // END Server
 
 
@@ -87,10 +113,11 @@ type Client struct {
 	clientName string
 	joinedRooms map[string]*ChatRoom
 	currentRoom *ChatRoom
+	messageQueue *[]string
 }
 
 func NewClient(name string) *Client{
-	return &Client{clientName:name, joinedRooms: map[string]*ChatRoom{}}
+	return &Client{clientName:name, joinedRooms: map[string]*ChatRoom{}, messageQueue: &[]string{}}
 }
 
 // END Client
