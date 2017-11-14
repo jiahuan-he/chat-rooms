@@ -5,35 +5,99 @@ import (
 	"net"
 	"log"
 	"net/http"
+	"errors"
+	"fmt"
 )
 
+//////////////////////// Server
+type Server struct{
+	chatRooms map[string]*ChatRoom
+	clients map[string]*Client
+}
 
-type Server struct{}
+func NewServer() *Server{
+
+	chatRooms := map[string]*ChatRoom{}
+	clients := map[string]*Client{}
+	s := &Server{chatRooms:chatRooms, clients:clients}
+
+	defaultName := "default-room"
+	defaultRoom := NewChatRoom(defaultName)
+	chatRooms[defaultName] = defaultRoom
+
+
+	return s
+}
+
+func (server *Server) AddUser(client string)  {
+	newClient := NewClient(client)
+	server.clients[client] = newClient
+}
+
+func (server *Server) JoinUserToRoom(client string, room string){
+	c := server.clients[client]
+	r := server.chatRooms[room]
+
+	r.clients[client] = c
+	c.joinedRooms[room] = r
+}
+
+func (server *Server) SwitchUserToRoom(client string, room string){
+	c := server.clients[client]
+	r := server.chatRooms[room]
+
+	c.currentRoom = r
+}
 
 func (server *Server) Connect(client string, isSuccessful *bool) error{
-	return nil;
+	if server.clients[client] == nil{
+		defer fmt.Println("New connection: User: "+ client)
+		defaultRoom := "default-room"
+		server.AddUser(client)
+		server.JoinUserToRoom(client, defaultRoom)
+		server.SwitchUserToRoom(client, defaultRoom)
+
+		*isSuccessful = true
+		return nil;
+	} else {
+		return errors.New("this name is already taken")
+	}
 }
 
-func (server *Server) Hello(words string, isSuccessful *bool) error {
-	*isSuccessful = true
-	return nil
+// END Server
+
+
+//////////////////////// ChatRoom
+type ChatRoom struct {
+	roomName string
+	clients map[string]*Client
+	history []string
 }
 
-//
-//
-//type Server struct{}
-//
-//func (server *Server) Connect(client string, isSuccessful *bool) error{
-//	return nil;
-//}
-//
-//func (server *Server) Hello(words string, isSuccessful *bool) error {
-//	*isSuccessful = true
-//	return nil
-//}
+func NewChatRoom(name string) *ChatRoom {
+	return &ChatRoom{roomName:name, clients:map[string]*Client{}}
+}
+
+// END ChatRoom
+
+
+
+//////////////////////// Client
+type Client struct {
+	clientName string
+	joinedRooms map[string]*ChatRoom
+	currentRoom *ChatRoom
+}
+
+func NewClient(name string) *Client{
+	return &Client{clientName:name, joinedRooms: map[string]*ChatRoom{}}
+}
+
+// END Client
+
 
 func main() {
-	server := new (Server)
+	server := NewServer()
 	rpc.Register(server)
 	rpc.HandleHTTP()
 

@@ -4,6 +4,8 @@ import (
 	"net/rpc"
 	"log"
 	"fmt"
+	"bufio"
+	"os"
 )
 
 func main() {
@@ -12,12 +14,25 @@ func main() {
 		log.Fatal("dialing:", err)
 	}
 
-	var reply *bool
-	client.Call("Server.Hello", "Geoff", &reply)
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("System => Please enter your name: ")
+	name, _ := reader.ReadString('\n')
 
-	if err != nil {
-		log.Fatal("arith error:", err)
+	var connSuccess *bool
+	err = client.Call("Server.Connect", name, &connSuccess)
+	if err == nil{
+		if  *connSuccess{
+			for {
+				//	 read in input from stdin
+				_ , err := reader.ReadString('\n')
+				if err != nil{
+					return
+				}
+			}
+		}
+	} else {
+		fmt.Println(err)
 	}
-	fmt.Printf("%t", *reply)
+
 
 }
