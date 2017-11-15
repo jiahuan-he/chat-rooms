@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"../shared"
+	"strings"
 )
 
 //////////////////////// Server
@@ -65,18 +66,21 @@ func (server *Server) Connect(client string, isSuccessful *bool) error{
 
 
 func (server *Server) Speak(arg shared.Message, messageBack *string) error{
+	if strings.TrimSpace(strings.TrimRight(arg.Message, "\n")) == "" {
+		return nil
+	}
 	client:= server.clients[arg.Client]
 	room := client.currentRoom
-
-
+	m := "("+room.roomName+") "+client.clientName+" => "+arg.Message
 	for _, c := range room.clients{
-		*(c.messageQueue) = append((*(c.messageQueue)), arg.Message)
+		*(c.messageQueue) = append((*(c.messageQueue)), m)
 		*messageBack = arg.Message
 	}
 	return nil
 }
 
 func (server *Server) Retrieve(client string, mq *[]string) error  {
+
 	if server.clients[client].messageQueue == nil {
 		mq = nil
 	} else {
@@ -86,7 +90,6 @@ func (server *Server) Retrieve(client string, mq *[]string) error  {
 		server.clients[client].messageQueue = nil
 		server.clients[client].messageQueue = &[]string{}
 	}
-	//*server.clients[client].messageQueue.Messages = (*(server.clients[client].messageQueue.Messages))[:0]
 	return nil
 }
 

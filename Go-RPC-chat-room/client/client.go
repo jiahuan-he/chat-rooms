@@ -8,6 +8,7 @@ import (
 	"os"
 	"../shared"
 	"time"
+	"strings"
 )
 
 func main() {
@@ -19,7 +20,7 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("System => Please enter your name: ")
 	name, _ := reader.ReadString('\n')
-
+	name = strings.TrimRight(name, "\n")
 	var connSuccess *bool
 	err = client.Call("Server.Connect", name, &connSuccess)
 	go Retrieve(client, name)
@@ -49,7 +50,9 @@ func Retrieve(client *rpc.Client, clientName string){
 		client.Call("Server.Retrieve", clientName, &mq)
 		if mq != nil && len(*mq) > 0{
 			for _, m := range *mq{
-				fmt.Print("retrive " , m)
+				if strings.Trim(strings.TrimSpace(m), "\n") != "" {
+					fmt.Print(m)
+				}
 			}
 		}
 		time.Sleep(time.Millisecond * 500)
