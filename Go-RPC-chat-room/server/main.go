@@ -22,19 +22,18 @@ func NewServer() *Server{
 	chatRooms := map[string]*ChatRoom{}
 	clients := map[string]*Client{}
 	s := &Server{chatRooms:chatRooms, clients:clients}
-
 	defaultName := "default-room"
 	defaultRoom := NewChatRoom(defaultName)
 	chatRooms[defaultName] = defaultRoom
 	return s
 }
 
-func (server *Server) AddUser(client string)  {
+func (server *Server) _addUser(client string)  {
 	newClient := NewClient(client)
 	server.clients[client] = newClient
 }
 
-func (server *Server) JoinUserToRoom(client string, room string){
+func (server *Server) _joinUserToRoom(client string, room string){
 	c := server.clients[client]
 	r := server.chatRooms[room]
 
@@ -42,28 +41,94 @@ func (server *Server) JoinUserToRoom(client string, room string){
 	c.joinedRooms[room] = r
 }
 
-func (server *Server) SwitchUserToRoom(client string, room string){
+func (server *Server) _switchUserToRoom(client string, room string){
 	c := server.clients[client]
 	r := server.chatRooms[room]
-
 	c.currentRoom = r
 }
+
+func (server *Server) SwitchUserToRoom(args shared.SwitchRoom, room *string) error{
+	c := server.clients[args.Client]
+	if _, ok := server.chatRooms[args.Room]; ok{
+		if rJoined, ok := c.joinedRooms[args.Room] ;ok {
+			c.currentRoom = rJoined
+		} else {
+			return errors.New("You've not joined room "+args.Room)
+		}
+	} else {
+		return errors.New("The room" +args.Room+" doesn't exist")
+	}
+	return nil
+}
+
+func (server *Server) CreateRoom (arg shared.CreateRoom, roomName *string) error{
+	if _, ok := server.chatRooms[arg.Room]; ok{
+		return errors.New("The room" +arg.Room+" already exists")
+	} else {
+		newRoom := NewChatRoom(arg.Room)
+		server.chatRooms[arg.Room] = newRoom
+		*roomName = arg.Room
+		c := server.clients[arg.Client]
+		c._appendMessage("SYSTEM => Success: Created room: " + arg.Room)
+	}
+	return nil
+}
+
+
+func (server *Server) JoinRoom (args shared.JoinRoom, roomName *string) error{
+	c := server.clients[args.Client]
+	if room, ok := server.chatRooms[args.Room]; ok{
+		if _, ok := c.joinedRooms[args.Room] ;ok {
+			return errors.New("You've already joined room "+args.Room)
+		} else {
+			c.joinedRooms[args.Room] = room
+			room.clients[args.Client] = c
+			c._appendMessage("SYSTEM => Success: joined room: " + args.Room)
+			*roomName = args.Room
+		}
+	} else {
+		return errors.New("Room "+args.Room+" doesn't exist")
+	}
+	return nil
+}
+
+
+func (server *Server) LeaveRoom (args shared.LeaveRoom, roomName *string) error{
+	c := server.clients[args.Client]
+	if room, ok := server.chatRooms[args.Room]; ok{
+		if _, ok := c.joinedRooms[args.Room] ;ok {
+			delete(c.joinedRooms, args.Room)
+			delete(room.clients, args.Client)
+			c._appendMessage("SYSTEM => Success: Left room: " + args.Room)
+			*roomName = args.Room
+		} else {
+
+			return errors.New("You've not joined room "+args.Room)
+		}
+	} else {
+		return errors.New("Room "+args.Room+" doesn't exist")
+	}
+	return nil
+}
+
+
 
 func (server *Server) Connect(client string, isSuccessful *bool) error{
 	if server.clients[client] == nil{
 		defer fmt.Println("New connection: User: "+ client)
 		defaultRoom := "default-room"
-		server.AddUser(client)
-		server.JoinUserToRoom(client, defaultRoom)
-		server.SwitchUserToRoom(client, defaultRoom)
-
+		server._addUser(client)
+		server._joinUserToRoom(client, defaultRoom)
+		server._switchUserToRoom(client, defaultRoom)
+		for _, c := range server.chatRooms[defaultRoom].clients{
+			c._appendMessage("SYSTEM => Welcome new user: "+client+" join default-room")
+		}
 		*isSuccessful = true
 		return nil;
 	} else {
-		return errors.New("this name is already taken")
+		return errors.New("Name "+client+" is already taken")
 	}
 }
-
 
 func (server *Server) Speak(arg shared.Message, messageBack *string) error{
 	if strings.TrimSpace(strings.TrimRight(arg.Message, "\n")) == "" {
@@ -73,7 +138,7 @@ func (server *Server) Speak(arg shared.Message, messageBack *string) error{
 	room := client.currentRoom
 	m := "("+room.roomName+") "+client.clientName+" => "+arg.Message
 	for _, c := range room.clients{
-		*(c.messageQueue) = append((*(c.messageQueue)), m)
+		c._appendMessage(m)
 		*messageBack = arg.Message
 	}
 	return nil
@@ -92,6 +157,25 @@ func (server *Server) Retrieve(client string, mq *[]string) error  {
 	}
 	return nil
 }
+
+
+func (server *Server) ListRoom(client string, isSuccessful *bool) error  {
+	c := server.clients[client]
+	for _, room := range server.chatRooms{
+		var message string
+		if  c.currentRoom == room{
+			message = "SYSTEM => (Current) (Joined) "+room.roomName
+		} else if _, ok := room.clients[client]; ok {
+			message = "SYSTEM =>           (Joined) "+room.roomName
+		} else {
+			message = "SYSTEM =>                    "+room.roomName
+		}
+		c._appendMessage(message)
+	}
+	return nil
+}
+
+
 
 // END Server
 
@@ -121,6 +205,10 @@ type Client struct {
 
 func NewClient(name string) *Client{
 	return &Client{clientName:name, joinedRooms: map[string]*ChatRoom{}, messageQueue: &[]string{}}
+}
+
+func (client *Client) _appendMessage(message string)  {
+	*(client.messageQueue) = append((*(client.messageQueue)), message)
 }
 
 // END Client
