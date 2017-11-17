@@ -1,13 +1,21 @@
-// HelloServer.java
-// Copyright and License
-import ChatRoom.*;
+import _ChatRoom.*;
 import org.omg.CosNaming.*;
 import org.omg.CORBA.*;
 import org.omg.PortableServer.*;
 import org.omg.PortableServer.POA;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
 class ServerImpl extends ServerPOA {
     private ORB orb;
+
+    HashMap<String, ChatRoom> chatRooms = new HashMap<>();
+    HashMap<String, ServerClient> clients= new HashMap<>();
+
+    ServerImpl(){
+        chatRooms.put("default-room", new ChatRoom("default-room"));
+    }
 
     public void setORB(ORB orb_val) {
         orb = orb_val;
@@ -21,6 +29,84 @@ class ServerImpl extends ServerPOA {
     // implement shutdown() method
     public void shutdown() {
         orb.shutdown(false);
+    }
+
+    @Override
+    public boolean connect(String clientName) {
+        if (clients.containsKey(clientName)){
+            return false;
+        } else {
+
+            ChatRoom defaultRoom = chatRooms.get("default-room");
+            ServerClient newClient = new ServerClient(clientName);
+            this.clients.put(clientName, newClient);
+            defaultRoom.clients.put(clientName, newClient);
+            newClient.currnetRoom = defaultRoom;
+            for (ServerClient sc: defaultRoom.clients.values()){
+                sc.messageQueue.add("SYSTEM => Welcome new user: "+clientName+" join default-room");
+            }
+            System.out.println("New connection: User: "+clientName);
+            return true;
+        }
+    }
+
+
+    @Override
+    public boolean createRoom(String clientName, String roomName) {
+
+        return false;
+    }
+
+    @Override
+    public boolean switchRoom(String clientName, String roomName) {
+        return false;
+    }
+
+    @Override
+    public boolean joinRoom(String clientName, String roomName) {
+        return false;
+    }
+
+    @Override
+    public boolean leaveRoom(String clientName, String roomName) {
+        return false;
+    }
+
+    @Override
+    public String[] listRoom(String clientName) {
+        return null;
+    }
+
+    @Override
+    public String[] retrieve(String clientName) {
+        if (clients.get(clientName).messageQueue.size() == 0){
+            return new String[0];
+        } else {
+            ArrayList<String> mq = clients.get(clientName).messageQueue;
+            int size = mq.size();
+            String[] result = new String[size];
+            int i=0;
+            for (String msg : mq){
+                result[i] = msg;
+                i++;
+            }
+            clients.get(clientName).messageQueue.clear();
+            return result;
+        }
+    }
+
+    @Override
+    public boolean speak(String clientName, String message) {
+        if (message.equals("")){
+            return false;
+        }
+
+        ChatRoom room = clients.get(clientName).currnetRoom;
+        message = "("+room.roomName+") "+clientName+" => "+message;
+        for (ServerClient sc : room.clients.values()){
+            sc.messageQueue.add(message);
+        }
+        return true;
     }
 }
 
@@ -69,7 +155,6 @@ public class Main {
         }
 
         System.out.println("Main Exiting ...");
-
     }
 }
  
