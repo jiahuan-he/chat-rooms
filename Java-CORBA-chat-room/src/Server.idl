@@ -1,0 +1,9 @@
+module ChatRoom
+{
+  interface Server
+  {
+    string sayHello();
+    oneway void shutdown();
+
+  };
+};
