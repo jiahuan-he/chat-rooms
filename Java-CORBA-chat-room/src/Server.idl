@@ -1,9 +1,16 @@
-module ChatRoom
+module _ChatRoom
 {
   interface Server
   {
     string sayHello();
     oneway void shutdown();
+    boolean connect(in string clientName);
+    boolean createRoom(in string clientName, in string roomName);
+    boolean switchRoom(in string clientName, in string roomName);
+    boolean joinRoom(in string clientName, in string roomName);
+    boolean leaveRoom(in string clientName, in string roomName);
+    boolean listRoom(in string clientName, in string roomName);
+
 
   };
 };

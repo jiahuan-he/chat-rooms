@@ -1,4 +1,4 @@
-import ChatRoom.*;
+import _ChatRoom.*;
 import org.omg.CosNaming.*;
 import org.omg.CORBA.*;
 
@@ -24,7 +24,7 @@ public class Client
             serverImpl = ServerHelper.narrow(ncRef.resolve_str(name));
 
             System.out.println("Obtained a handle on server object: " + serverImpl);
-            System.out.println(serverImpl.sayHello());
+            System.out.println(serverImpl.connect("NEWClient"));
             serverImpl.shutdown();
 
         } catch (Exception e) {
