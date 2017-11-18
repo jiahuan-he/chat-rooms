@@ -53,6 +53,7 @@ func (server *Server) SwitchRoom(args shared.SwitchRoom, room *string) error{
 	if _, ok := server.chatRooms[args.Room]; ok{
 		if rJoined, ok := c.joinedRooms[args.Room] ;ok {
 			c.currentRoom = rJoined
+			c._appendMessage("System => Success: You have switched to room "+ args.Room);
 		} else {
 			c._appendMessage("System => Error: You have to join "+ args.Room+" first");
 			return errors.New("You've not joined room "+args.Room)
@@ -104,7 +105,11 @@ func (server *Server) LeaveRoom (args shared.LeaveRoom, roomName *string) error{
 			delete(room.clients, args.Client)
 			c._appendMessage("SYSTEM => Success: Left room: " + args.Room)
 			*roomName = args.Room
-			//TODO Check if left current room
+			if c.currentRoom.roomName == args.Room {
+				c._appendMessage("SYSTEM => Note: You just left the current room, switching to default room ... ")
+				var temp  *string
+				server.SwitchRoom(shared.SwitchRoom{Room:"default-room", Client:c.clientName}, temp)
+			}
 
 
 		} else {
