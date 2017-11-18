@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"../shared"
 	"strings"
+	"sort"
 )
 
 //////////////////////// Server
@@ -47,15 +48,17 @@ func (server *Server) _switchUserToRoom(client string, room string){
 	c.currentRoom = r
 }
 
-func (server *Server) SwitchUserToRoom(args shared.SwitchRoom, room *string) error{
+func (server *Server) SwitchRoom(args shared.SwitchRoom, room *string) error{
 	c := server.clients[args.Client]
 	if _, ok := server.chatRooms[args.Room]; ok{
 		if rJoined, ok := c.joinedRooms[args.Room] ;ok {
 			c.currentRoom = rJoined
 		} else {
+			c._appendMessage("System => Error: You have to join "+ args.Room+" first");
 			return errors.New("You've not joined room "+args.Room)
 		}
 	} else {
+		c._appendMessage("System => Error: Room "+ args.Room +" doesn't exist");
 		return errors.New("The room" +args.Room+" doesn't exist")
 	}
 	return nil
@@ -101,8 +104,10 @@ func (server *Server) LeaveRoom (args shared.LeaveRoom, roomName *string) error{
 			delete(room.clients, args.Client)
 			c._appendMessage("SYSTEM => Success: Left room: " + args.Room)
 			*roomName = args.Room
-		} else {
+			//TODO Check if left current room
 
+
+		} else {
 			return errors.New("You've not joined room "+args.Room)
 		}
 	} else {
@@ -161,14 +166,21 @@ func (server *Server) Retrieve(client string, mq *[]string) error  {
 
 func (server *Server) ListRoom(client string, isSuccessful *bool) error  {
 	c := server.clients[client]
+	roomNames := []string{}
 	for _, room := range server.chatRooms{
+		roomNames = append(roomNames, room.roomName)
+	}
+
+	sort.Strings(roomNames)
+
+	for _, room := range roomNames{
 		var message string
-		if  c.currentRoom == room{
-			message = "SYSTEM => (Current) (Joined) "+room.roomName
-		} else if _, ok := room.clients[client]; ok {
-			message = "SYSTEM =>           (Joined) "+room.roomName
+		if  c.currentRoom.roomName == room{
+			message = "SYSTEM => (Current) (Joined) "+ room
+		} else if _, ok := server.chatRooms[room].clients[client]; ok {
+			message = "SYSTEM =>           (Joined) "+room
 		} else {
-			message = "SYSTEM =>                    "+room.roomName
+			message = "SYSTEM =>                    "+room
 		}
 		c._appendMessage(message)
 	}
