@@ -53,28 +53,91 @@ class ServerImpl extends ServerPOA {
 
     @Override
     public boolean createRoom(String clientName, String roomName) {
-
-        return false;
+        if (chatRooms.containsKey(roomName)){
+            return false;
+        } else {
+            ChatRoom newRoom = new ChatRoom(roomName);
+            chatRooms.put(roomName, newRoom);
+            ServerClient sc = clients.get(clientName);
+            sc.messageQueue.add("SYSTEM => Success: Created room: " + roomName);
+            return true;
+        }
     }
 
     @Override
     public boolean switchRoom(String clientName, String roomName) {
-        return false;
+        ServerClient sc = clients.get(clientName);
+        if (chatRooms.containsKey(roomName)){
+            if (sc.joinedRooms.containsKey(roomName)){
+                sc.currnetRoom = sc.joinedRooms.get(roomName);
+                sc.messageQueue.add("System => Success: Switched to room: "+ roomName);
+                return true;
+            } else {
+                sc.messageQueue.add("System => Error: You have to join "+ roomName+" first");
+                return false;
+            }
+        } else {
+            sc.messageQueue.add("System => Error: Room "+ roomName+" doesn't exist");
+            return false;
+        }
     }
 
     @Override
     public boolean joinRoom(String clientName, String roomName) {
-        return false;
+        ServerClient sc = clients.get(clientName);
+        if (chatRooms.containsKey(roomName)){
+            if (sc.joinedRooms.containsKey(roomName)){
+                sc.messageQueue.add("SYSTEM => Error: You've already joined room "+roomName);
+                return false;
+            } else {
+                ChatRoom room = chatRooms.get(roomName);
+                sc.joinedRooms.put(roomName, room);
+                room.clients.put(clientName, sc);
+                sc.messageQueue.add("SYSTEM => Success: joined room: " + roomName);
+                return true;
+            }
+        } else {
+            sc.messageQueue.add("SYSTEM => Error: Room "+roomName+" doesn't exist");
+            return false;
+        }
     }
 
     @Override
     public boolean leaveRoom(String clientName, String roomName) {
-        return false;
+        ServerClient sc = clients.get(clientName);
+        if (chatRooms.containsKey(roomName)){
+            ChatRoom room = chatRooms.get(roomName);
+            if (sc.joinedRooms.containsKey(roomName)){
+                sc.joinedRooms.remove(roomName);
+                room.clients.remove(clientName);
+                sc.messageQueue.add("SYSTEM => Success: Left room: " + roomName);
+                return true;
+                //TODO Check if left current room
+            } else {
+                sc.messageQueue.add("SYSTEM => Error: You haven't joined room: " + roomName);
+                return false;
+            }
+        } else {
+            sc.messageQueue.add("SYSTEM => Error: Room " + roomName+" doesn't exist");
+            return false;
+        }
     }
 
     @Override
-    public String[] listRoom(String clientName) {
-        return null;
+    public void listRoom(String clientName) {
+        ServerClient sc = clients.get(clientName);
+        for (ChatRoom room: chatRooms.values()){
+            String message;
+            // TODO sort room names
+            if (sc.currnetRoom == room){
+                message = "SYSTEM => (Current) (Joined) "+room.roomName;
+            } else if (room.clients.containsKey(clientName)){
+                message = "SYSTEM =>           (Joined) "+room.roomName;
+            } else {
+                message = "SYSTEM =>                    "+room.roomName;
+            }
+            sc.messageQueue.add(message);
+        }
     }
 
     @Override
@@ -100,7 +163,6 @@ class ServerImpl extends ServerPOA {
         if (message.equals("")){
             return false;
         }
-
         ChatRoom room = clients.get(clientName).currnetRoom;
         message = "("+room.roomName+") "+clientName+" => "+message;
         for (ServerClient sc : room.clients.values()){

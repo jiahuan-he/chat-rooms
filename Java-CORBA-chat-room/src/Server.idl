@@ -10,7 +10,7 @@ module _ChatRoom
     boolean switchRoom(in string clientName, in string roomName);
     boolean joinRoom(in string clientName, in string roomName);
     boolean leaveRoom(in string clientName, in string roomName);
-    stringArr listRoom(in string clientName);
+    void listRoom(in string clientName);
     stringArr retrieve(in string clientName);
     boolean speak(in string clientName, in string message);
 
