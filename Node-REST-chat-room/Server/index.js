@@ -12,11 +12,11 @@ module.exports = class Server{
     }
 
     connect (clientName) {        
-        if(this.clients[clientName]){
+
+        if(this.clients[clientName]){            
+            console.log("this name exists")
             return false
         } else {
-
-            
             const defaultRoom = this.chatRooms[this.defaultName]
             this.chatRooms[this.defaultName] = defaultRoom
 
@@ -29,10 +29,21 @@ module.exports = class Server{
 
             Object.keys(defaultRoom.clients).map((client) => {
                 this.clients[client].messageQueue.push("SYSTEM => Welcome new user: "+ clientName)    
-            });
-
-            
+            });            
             return true
         }    
+    }
+
+    speak(clientName, message){
+        const client = this.clients[clientName]
+        const room = client.currentRoom
+        message = "("+room.roomName+") "+client.clientName+" => "+message
+        Object.keys(room.clients).map((client) => {
+            this.clients[client].messageQueue.push(message)    
+        }); 
+    }
+
+    retrieve(clientName){        
+        return this.clients[clientName].messageQueue        
     }
 }

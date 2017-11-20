@@ -6,21 +6,32 @@ const app = express()
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
-app.post('/client', (req, res) => {
 const srv = new Server()
-        const clientName = req.body.name
-        console.log(req.body)
+app.post('/client', (req, res) => {
+        
+        const clientName = req.body.clientName
+        console.log(req.body.clientName)
         if (srv.connect(clientName)){
             res.sendStatus(200)
         } else {
-            res.sendStatus(404)
+            res.sendStatus(409)
         }
     }
 )
 
-app.get('/', (req, res) => {
-    console.log("/get")
-    res.send("hello world")
+// Client speaks
+app.post('/message', (req, res) => {
+    const clientName = req.body.clientName
+    const message = req.body.message
+    res.sendStatus(200)
+    srv.speak(clientName, message)
+})
+
+// Client Retrive, content-type: text/plain
+app.get('/message', (req, res) => {
+    const clientName = req.query.clientName
+    const messages = srv.retrieve(clientName)
+    res.json(messages)
 })
 
 app.listen(3000, () => console.log('Example app listening on port 3000!'))
