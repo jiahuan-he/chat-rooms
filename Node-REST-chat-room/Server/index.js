@@ -44,6 +44,10 @@ module.exports = class Server{
     }
 
     retrieve(clientName){        
-        return this.clients[clientName].messageQueue        
+        const messages = this.clients[clientName].messageQueue.map( (m) => {
+            return m
+        })
+        this.clients[clientName].messageQueue = []
+        return messages
     }
 }

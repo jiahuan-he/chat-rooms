@@ -27,7 +27,7 @@ app.post('/message', (req, res) => {
     srv.speak(clientName, message)
 })
 
-// Client Retrive, content-type: text/plain
+// Client Retrive, content-type: 
 app.get('/message', (req, res) => {
     const clientName = req.query.clientName
     const messages = srv.retrieve(clientName)
