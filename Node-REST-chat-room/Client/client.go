@@ -42,6 +42,7 @@ func main()  {
 		//}
 		CLIENT_NAME := "clientName"
 		ROOM_NAME := "roomName"
+		METHOD := "method"
 
 
 		if err == nil{
@@ -75,11 +76,11 @@ func main()  {
 						room := input[i]
 						params = append(params, Param{key:CLIENT_NAME, value: clientName})
 						params = append(params, Param{key:ROOM_NAME, value: room})
-
-						// TODO join room
-						//if err != nil{
-						//	fmt.Println(err)
-						//}
+						params = append(params, Param{key:METHOD, value: "join"})
+						Post(url_room, params)
+						if err != nil{
+							fmt.Println(err)
+						}
 					}
 				} else {
 					fmt.Println("Wrong number of parameters")
