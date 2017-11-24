@@ -37,10 +37,15 @@ module.exports = class Server{
     speak(clientName, message){
         const client = this.clients[clientName]
         const room = client.currentRoom
-        message = "("+room.roomName+") "+client.clientName+" => "+message
-        Object.keys(room.clients).map((client) => {
-            this.clients[client].messageQueue.push(message)    
-        }); 
+        if(room){
+            message = "("+room.roomName+") "+client.clientName+" => "+message
+            Object.keys(room.clients).map((client) => {
+                this.clients[client].messageQueue.push(message)    
+            }); 
+        } else {
+            message = "SYSTEM => Note: You current room is empty, please join and switch to a room to speak"
+            client.messageQueue.push(message)
+        }
     }
 
     retrieve(clientName){        
@@ -69,7 +74,7 @@ module.exports = class Server{
         rooms = rooms.sort()
         rooms.map( (room) => {
             let message = ""
-            if  (client.currentRoom.roomName === room){
+            if  (client.currentRoom && client.currentRoom.roomName === room){
                 message = "SYSTEM => (Current) (Joined) "+ room
             } else if (this.chatRooms[room].clients[clientName]){
                 message = "SYSTEM =>           (Joined) "+room
@@ -106,14 +111,37 @@ module.exports = class Server{
             if(client.joinedRooms[roomName]){
                 const room = this.chatRooms[roomName]
                 client.currentRoom = room
+                message = ("SYSTEM => Success: You Switched to room "+ roomName);
             } else {
                 // exists but not joined
-                message = ("System => Error: You have to join "+ roomName +" first");
+                message = ("SYSTEM => Error: You have to join "+ roomName +" first");
             }
         } else { 
             // Non-exist
             message = "SYSTEM => Error: Room: "+ roomName + " doesn't exist"
         }
         client.messageQueue.push(message)     
+    }
+
+    leaveRoom(clientName, roomName){
+        let message = ""
+        const client = this.clients[clientName]
+        const room = this.chatRooms[roomName]
+        if(room){
+            const joinedRoom = client.joinedRooms[roomName]
+            if(joinedRoom){
+                delete client.joinedRooms[roomName]
+                delete joinedRoom.clients[clientName]
+                client.messageQueue.push("SYSTEM => Success: You left room "+ roomName)
+                if(client.currentRoom.roomName === roomName){
+                    client.messageQueue.push("SYSTEM => Note: You left current room, please join a room to speak")
+                    delete client.currentRoom
+                }
+            } else {
+                client.messageQueue.push("SYSTEM => Error: You have to join "+ roomName +" first")
+            }
+        } else {
+            client.messageQueue.push("SYSTEM => Error: Room: "+ roomName + " doesn't exist")
+        }
     }
 }

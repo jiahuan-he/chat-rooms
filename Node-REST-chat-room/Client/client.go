@@ -58,6 +58,7 @@ func main()  {
 						err := Post(url_room, params)
 						if err != nil{
 							fmt.Println(err)
+							return
 						}
 					}
 				} else {
@@ -68,6 +69,7 @@ func main()  {
 				_, err :=Get(url_room, params)
 				if err != nil {
 					fmt.Println(err)
+					return
 				}
 
 			} else if strings.HasPrefix(m, "/join") {
@@ -80,6 +82,7 @@ func main()  {
 						Post(url_room, params)
 						if err != nil{
 							fmt.Println(err)
+							return
 						}
 					}
 				} else {
@@ -91,10 +94,12 @@ func main()  {
 						room := input[i]
 						params = append(params, Param{key:CLIENT_NAME, value: clientName})
 						params = append(params, Param{key:ROOM_NAME, value: room})
-						// TODO leave room
-						//if err != nil{
-						//	fmt.Println(err)
-						//}
+						params = append(params, Param{key: METHOD, value:"leave"})
+						err := Post(url_room, params)
+						if err != nil{
+							fmt.Println(err)
+							return
+						}
 					}
 				} else {
 					fmt.Println("Wrong number of parameters")
@@ -105,7 +110,11 @@ func main()  {
 					params = append(params, Param{key:CLIENT_NAME, value: clientName})
 					params = append(params, Param{key:ROOM_NAME, value: room})
 					params = append(params, Param{key:METHOD, value:"switch"})
-					Post(url_room, params)
+					err := Post(url_room, params)
+					if err != nil{
+						fmt.Println(err)
+						return
+					}
 				} else {
 					fmt.Println("Wrong number of parameters")
 				}
