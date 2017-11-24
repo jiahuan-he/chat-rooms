@@ -54,6 +54,9 @@ app.post('/room', (req, res) => {
         case "join":
             srv.joinRoom(clientName, roomName)
             break
+        case "switch":
+            srv.switchRoom(clientName, roomName)
+            break
         default: 
             srv.createRoom(clientName, roomName)
     }

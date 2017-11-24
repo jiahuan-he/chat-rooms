@@ -104,10 +104,8 @@ func main()  {
 					room := input[1]
 					params = append(params, Param{key:CLIENT_NAME, value: clientName})
 					params = append(params, Param{key:ROOM_NAME, value: room})
-					// TODO switch room
-					//if err != nil{
-					//	fmt.Println(err)
-					//}
+					params = append(params, Param{key:METHOD, value:"switch"})
+					Post(url_room, params)
 				} else {
 					fmt.Println("Wrong number of parameters")
 				}
@@ -138,16 +136,14 @@ func Retrieve(clientName string){
 		messages, err := Get(url_message, param)
 		if err != nil{
 			 fmt.Println(err)
+			 return
 		}
-
 		messages = strings.TrimSpace(StripString(messages))
-
-
 		if(messages!= "[]"){
 			for _, m := range ParseStrToArr(messages){
 				fmt.Println(m)
 			}
 		}
-		time.Sleep(time.Millisecond * 500)
+		time.Sleep(time.Millisecond * 400)
 	}
 }

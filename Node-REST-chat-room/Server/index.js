@@ -98,4 +98,22 @@ module.exports = class Server{
         client.messageQueue.push(message)            
     }
 
+    switchRoom(clientName, roomName){
+        let message = ""
+        const client = this.clients[clientName]
+        if (this.chatRooms[roomName]){
+            // success
+            if(client.joinedRooms[roomName]){
+                const room = this.chatRooms[roomName]
+                client.currentRoom = room
+            } else {
+                // exists but not joined
+                message = ("System => Error: You have to join "+ roomName +" first");
+            }
+        } else { 
+            // Non-exist
+            message = "SYSTEM => Error: Room: "+ roomName + " doesn't exist"
+        }
+        client.messageQueue.push(message)     
+    }
 }
